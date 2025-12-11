@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { toPng, toJpeg } from 'html-to-image';
 import jsPDF from 'jspdf';
 import { AppState } from '../types';
+import { getAvailablePageHeight, paginateProducts } from '../utils';
 
 interface ExportModalProps {
     isOpen: boolean;
@@ -39,8 +40,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
             // Scale 3 para alta resolução
             const scale = 3;
 
-            // Fallback se não houver pages definido (migração)
-            const pages = state.pages || [{ id: 'page-1' }];
+            // Recalcular paginação para garantir consistência com o Preview
+            const availableHeight = getAvailablePageHeight(
+                state.paperSize,
+                state.orientation,
+                !!state.header.customImage,
+                !!state.footer.customImage
+            );
+            const itemHeight = (state.layout.cardHeight || 280) + (state.layout.rowGap || 16);
+
+            const productPages = paginateProducts(state.products, availableHeight, itemHeight, state.columns);
 
             if (targetFormat === 'pdf') {
                 // Configuração inicial do PDF baseada na orientação
@@ -51,14 +60,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
                 });
 
                 const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeightPage = pdf.internal.pageSize.getHeight();
 
-                for (let i = 0; i < pages.length; i++) {
-                    const page = pages[i];
-                    setProgress(`Processando Página ${i + 1}/${pages.length}...`);
+                for (let i = 0; i < productPages.length; i++) {
+                    setProgress(`Processando Página ${i + 1}/${productPages.length}...`);
 
-                    // ID do elemento da página específica
-                    const elementId = `flyer-page-${page.id}`;
+                    // ID do elemento baseado no índice (flyer-page-0, flyer-page-1...)
+                    const elementId = `flyer-page-${i}`;
 
                     // Usamos JPEG para otimizar tamanho no PDF
                     const imgData = await generateBaseImage(elementId, 'jpeg', scale);
@@ -69,7 +76,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
 
                     if (i > 0) pdf.addPage();
 
-                    // Centralizar verticalmente se for menor que a página, ou alinhar ao topo
                     pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
                 }
 
@@ -79,15 +85,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
                 // Exportação PNG/JPG (Sequencial)
                 const imgType = targetFormat === 'jpg' ? 'jpeg' : 'png';
 
-                for (let i = 0; i < pages.length; i++) {
-                    const page = pages[i];
-                    setProgress(`Gerando Imagem ${i + 1}/${pages.length}...`);
+                for (let i = 0; i < productPages.length; i++) {
+                    setProgress(`Gerando Imagem ${i + 1}/${productPages.length}...`);
 
-                    const elementId = `flyer-page-${page.id}`;
+                    const elementId = `flyer-page-${i}`;
                     const imgData = await generateBaseImage(elementId, imgType, scale);
 
                     const link = document.createElement('a');
-                    const suffix = pages.length > 1 ? `-pg${i + 1}` : '';
+                    const suffix = productPages.length > 1 ? `-pg${i + 1}` : '';
                     link.download = `${fileName}${suffix}.${targetFormat}`;
                     link.href = imgData;
                     document.body.appendChild(link);
@@ -95,7 +100,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
                     document.body.removeChild(link);
 
                     // Pequeno delay para evitar bloqueio de downloads múltiplos
-                    if (pages.length > 1) await new Promise(r => setTimeout(r, 800));
+                    if (productPages.length > 1) await new Promise(r => setTimeout(r, 800));
                 }
             }
 
@@ -182,7 +187,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
                 {/* Footer info */}
                 {!isExporting && (
                     <p className="text-[10px] text-center text-gray-400 mt-6 max-w-xs mx-auto">
-                        O sistema gera imagens separadas (se houver múltiplas páginas) ou um único PDF multipágina.
+                        O sistema gera automaticamente múltiplas páginas se os produtos não couberem em uma só.
                     </p>
                 )}
             </div>
