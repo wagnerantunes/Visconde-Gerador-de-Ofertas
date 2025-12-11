@@ -11,52 +11,72 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, className = '
 
   if (isHighlight) {
     return (
-      <div className={`bg-white rounded-2xl shadow-lg p-3 relative flex items-center border border-gray-100 overflow-visible group ${className} h-40`}>
-        <img 
-          src={product.image} 
-          alt={product.name} 
-          className="w-48 h-36 object-contain ml-2 transform group-hover:scale-105 transition-transform duration-300"
-        />
-        <div className="flex-1 pl-6 pr-24 z-10">
-          <h3 className="font-black text-gray-800 text-3xl leading-tight uppercase tracking-tight">{product.name}</h3>
-          {product.details && <p className="text-sm font-medium text-gray-500 mt-1 uppercase">{product.details}</p>}
+      <div className={`bg-white rounded-2xl shadow-lg overflow-hidden relative flex flex-col border-2 border-orange-400 ${className} h-48`}>
+        {/* Featured Badge */}
+        <div className="absolute top-2 left-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase z-20 shadow-lg flex items-center gap-1">
+          <span className="text-sm">⭐</span> Destaque
         </div>
-        
-        {/* Highlight Price Tag */}
-        <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-primary price-tag flex flex-col items-center justify-center transform rotate-6 border-4 border-white shadow-xl z-20">
-          <span className="text-white text-xs font-bold uppercase -mb-1 mt-2">Apenas</span>
-          <div className="flex items-start text-secondary font-display leading-none">
-            <span className="text-sm mt-2 mr-1">R$</span>
-            <span className="text-6xl drop-shadow-sm">{Math.floor(product.price)}</span>
-            <div className="flex flex-col mt-2">
-               <span className="text-2xl">,{product.price.toFixed(2).split('.')[1]}</span>
+
+        {/* Image */}
+        <div className="flex-1 flex items-center justify-center p-4 pt-10">
+          <img
+            src={product.image}
+            alt={product.name}
+            className="max-h-full max-w-full object-contain transform group-hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+
+        {/* Info Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 pt-8">
+          <div className="flex items-end justify-between">
+            <div className="flex-1">
+              <h3 className="font-black text-white text-xl leading-tight uppercase tracking-tight">{product.name}</h3>
+              {product.details && <p className="text-xs font-medium text-orange-300 mt-1 uppercase">{product.details}</p>}
+            </div>
+
+            {/* Price Tag */}
+            <div className="bg-gradient-to-br from-orange-400 to-red-500 rounded-xl px-4 py-2 shadow-xl ml-4 flex-shrink-0">
+              <div className="flex items-start text-white font-display leading-none">
+                <span className="text-xs mt-1 mr-0.5">R$</span>
+                <span className="text-3xl font-bold">{Math.floor(product.price)}</span>
+                <div className="flex flex-col">
+                  <span className="text-lg">,{product.price.toFixed(2).split('.')[1]}</span>
+                </div>
+              </div>
+              <span className="text-white text-[10px] font-bold uppercase block text-center mt-0.5">/{product.unit}</span>
             </div>
           </div>
-          <span className="text-white text-[10px] bg-red-900 px-3 py-0.5 rounded-full mt-1 uppercase font-bold">{product.unit}</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`bg-white rounded-2xl shadow-md p-2 pt-10 relative flex flex-col items-center border border-gray-100 group ${className} hover:shadow-xl transition-shadow duration-300`}>
-      {/* Standard Price Tag */}
-      <div className="absolute -top-5 w-24 h-24 bg-primary price-tag flex flex-col items-center justify-center transform -rotate-3 border-4 border-white shadow-lg z-10 group-hover:scale-110 transition-transform">
-        <div className="flex items-start text-secondary font-display leading-none mt-1">
-          <span className="text-xs mt-1 mr-0.5">R$</span>
-          <span className="text-4xl">{Math.floor(product.price)}</span>
-          <span className="text-lg mt-1">,{product.price.toFixed(2).split('.')[1]}</span>
+    <div className={`bg-white rounded-2xl shadow-md overflow-hidden relative flex flex-col border border-gray-100 group ${className} hover:shadow-xl transition-all duration-300`}>
+      {/* Compact Price Badge - Top Right */}
+      <div className="absolute top-2 right-2 bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl px-3 py-2 shadow-lg z-10 group-hover:scale-105 transition-transform">
+        <div className="flex items-start leading-none">
+          <span className="text-[10px] mt-0.5 mr-0.5 opacity-90">R$</span>
+          <span className="text-2xl font-bold">{Math.floor(product.price)}</span>
+          <span className="text-sm mt-0.5">,{product.price.toFixed(2).split('.')[1]}</span>
         </div>
-        <span className="text-white text-[10px] font-bold uppercase mt-1">{product.unit}</span>
+        <div className="text-[9px] font-bold uppercase text-center mt-0.5 opacity-90">/{product.unit}</div>
       </div>
 
-      <img 
-        src={product.image} 
-        alt={product.name} 
-        className="w-full h-32 object-contain mb-3 transform group-hover:scale-105 transition-transform duration-300" 
-      />
-      <h3 className="font-bold text-gray-800 text-center text-lg leading-tight px-1 uppercase w-full line-clamp-2">{product.name}</h3>
-      {product.details && <p className="text-xs text-gray-500 mt-1 text-center">{product.details}</p>}
+      {/* Image - Takes most of the space */}
+      <div className="flex-1 flex items-center justify-center p-4 pt-6 min-h-[140px]">
+        <img
+          src={product.image}
+          alt={product.name}
+          className="max-h-full max-w-full object-contain transform group-hover:scale-105 transition-transform duration-300"
+        />
+      </div>
+
+      {/* Product Name - Bottom */}
+      <div className="bg-gray-50 p-3 border-t border-gray-100">
+        <h3 className="font-bold text-gray-800 text-center text-sm leading-tight uppercase line-clamp-2">{product.name}</h3>
+        {product.details && <p className="text-xs text-gray-500 mt-1 text-center line-clamp-1">{product.details}</p>}
+      </div>
     </div>
   );
 };

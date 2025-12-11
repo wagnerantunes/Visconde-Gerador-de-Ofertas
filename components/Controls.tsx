@@ -13,6 +13,8 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
   const [activeTab, setActiveTab] = useState<'single' | 'batch' | 'sheet'>('sheet');
   const [isLoadingSheet, setIsLoadingSheet] = useState(false);
   const [sheetStatus, setSheetStatus] = useState<string>('');
+  const [batchText, setBatchText] = useState('');
+  const [batchStatus, setBatchStatus] = useState<string>('');
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
     price: 0,
@@ -59,6 +61,40 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
     } finally {
       setIsLoadingSheet(false);
     }
+  };
+
+  const handleProcessBatch = (batchText: string) => {
+    if (!batchText.trim()) return;
+
+    const lines = batchText.split('\n').filter(line => line.trim());
+    const products: Product[] = [];
+
+    lines.forEach((line, index) => {
+      // Try to parse: "Product Name - 99.90" or "Product Name 99.90" or "Product Name R$ 99,90"
+      const priceMatch = line.match(/(?:R\$\s*)?(\d+)[,.](\d{2})/);
+
+      if (priceMatch) {
+        const price = parseFloat(`${priceMatch[1]}.${priceMatch[2]}`);
+        const name = line.substring(0, line.indexOf(priceMatch[0])).trim().replace(/[-–—]\s*$/, '').trim();
+
+        if (name && price > 0) {
+          products.push({
+            id: `batch-${Date.now()}-${index}`,
+            name,
+            price,
+            unit: 'KG',
+            isHighlight: false,
+            details: '',
+            image: MOCK_IMAGES[index % MOCK_IMAGES.length]
+          });
+        }
+      }
+    });
+
+    // Add all parsed products
+    products.forEach(product => onAddProduct(product));
+
+    return products.length;
   };
 
   return (
@@ -170,6 +206,25 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
             </div>
           </div>
         </section>
+
+        {/* Clear Products Button */}
+        <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex-1">
+            <p className="text-sm font-bold text-red-700 dark:text-red-300">Limpar Produtos</p>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">Remove todos os produtos do flyer</p>
+          </div>
+          <button
+            onClick={() => {
+              if (window.confirm(`Tem certeza que deseja remover todos os ${state.products.length} produtos?`)) {
+                onUpdateState({ products: [] });
+              }
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-lg shadow-lg transition-all flex items-center gap-2"
+          >
+            <span className="material-icons-round text-lg">delete_sweep</span>
+            Limpar Tudo
+          </button>
+        </div>
 
         <hr className="border-gray-200 dark:border-gray-700" />
 
@@ -288,13 +343,36 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
               <div>
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Lista de Produtos</label>
                 <textarea
+                  value={batchText}
+                  onChange={(e) => setBatchText(e.target.value)}
                   className="w-full h-40 rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs focus:ring-primary focus:border-primary font-mono leading-relaxed p-2"
                   placeholder={`Picanha Bovina - 69.90\nContra Filé - 45.00\nLinguiça Toscana - 18.90`}
                 ></textarea>
               </div>
-              <button className="w-full bg-gray-800 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white font-bold py-3 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2">
+              <button
+                onClick={() => {
+                  const count = handleProcessBatch(batchText);
+                  if (count && count > 0) {
+                    setBatchStatus(`✅ ${count} produtos adicionados!`);
+                    setBatchText('');
+                    setTimeout(() => setBatchStatus(''), 3000);
+                  } else {
+                    setBatchStatus('❌ Nenhum produto válido encontrado. Verifique o formato.');
+                  }
+                }}
+                className="w-full bg-gray-800 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white font-bold py-3 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2"
+              >
                 <span className="material-icons-round">playlist_add</span> Processar Lista
               </button>
+
+              {batchStatus && (
+                <div className={`p-3 rounded-lg text-sm ${batchStatus.startsWith('✅')
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                  : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                  }`}>
+                  {batchStatus}
+                </div>
+              )}
             </div>
           )}
 
