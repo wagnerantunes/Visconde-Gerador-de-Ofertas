@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import { Controls } from './components/Controls';
 import { FlyerPreview } from './components/FlyerPreview';
 import { AppState, Product } from './types';
@@ -146,16 +146,15 @@ const App: React.FC = () => {
       const element = document.getElementById('flyer-preview');
       if (!element) return;
 
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
+      const dataUrl = await toPng(element, {
+        quality: 1.0,
+        pixelRatio: 2,
         backgroundColor: '#ffffff'
       });
 
       const link = document.createElement('a');
       link.download = `flyer-${state.seasonal.theme}-${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = dataUrl;
       link.click();
     } catch (error) {
       console.error('Erro ao fazer download:', error);
@@ -171,36 +170,33 @@ const App: React.FC = () => {
       const element = document.getElementById('flyer-preview');
       if (!element) return;
 
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
+      const dataUrl = await toPng(element, {
+        quality: 1.0,
+        pixelRatio: 2,
         backgroundColor: '#ffffff'
       });
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
+      const blob = await (await fetch(dataUrl)).blob();
 
-        try {
-          // @ts-ignore
-          if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'share.png', { type: 'image/png' })] })) {
-            await navigator.share({
-              // @ts-ignore
-              files: [new File([blob], `flyer-${state.seasonal.theme}.png`, { type: 'image/png' })],
-              title: 'Minhas Ofertas',
-              text: 'Confira nossas ofertas especiais!'
-            });
-          } else {
-            const link = document.createElement('a');
-            link.download = `flyer-${state.seasonal.theme}-${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            alert("Imagem baixada! Compartilhe manualmente no WhatsApp.");
-          }
-        } catch (e) {
-          console.log('Share cancelado ou erro:', e);
+      try {
+        // @ts-ignore
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'share.png', { type: 'image/png' })] })) {
+          await navigator.share({
+            // @ts-ignore
+            files: [new File([blob], `flyer-${state.seasonal.theme}.png`, { type: 'image/png' })],
+            title: 'Minhas Ofertas',
+            text: 'Confira nossas ofertas especiais!'
+          });
+        } else {
+          const link = document.createElement('a');
+          link.download = `flyer-${state.seasonal.theme}-${Date.now()}.png`;
+          link.href = dataUrl;
+          link.click();
+          alert("Imagem baixada! Compartilhe manualmente no WhatsApp.");
         }
-      }, 'image/png');
+      } catch (e) {
+        console.log('Share cancelado ou erro:', e);
+      }
     } catch (error) {
       console.error('Erro ao compartilhar:', error);
       alert('Erro ao processar imagem.');
