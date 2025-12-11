@@ -36,11 +36,21 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
         <div className="flex flex-col items-start transform -rotate-2">
           <h1
             className="font-display text-6xl drop-shadow-[0_4px_0_rgba(0,0,0,0.5)] leading-none uppercase tracking-wide"
-            style={{ color: seasonal.secondaryColor }}
+            style={{
+              color: seasonal.secondaryColor,
+              fontFamily: state.fonts.headerTitle.family,
+              fontSize: `${3.75 * state.fonts.headerTitle.scale}rem`
+            }}
           >
             {seasonal.title}
           </h1>
-          <h2 className="font-display text-4xl text-white drop-shadow-md leading-none uppercase">
+          <h2
+            className="font-display text-4xl text-white drop-shadow-md leading-none uppercase"
+            style={{
+              fontFamily: state.fonts.headerSubtitle.family,
+              fontSize: `${2.25 * state.fonts.headerSubtitle.scale}rem`
+            }}
+          >
             {seasonal.subtitle}
           </h2>
         </div>
@@ -106,6 +116,7 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
               product={product}
               primaryColor={seasonal.primaryColor}
               secondaryColor={seasonal.secondaryColor}
+              fonts={state.fonts}
               className={product.isHighlight ? 'col-span-2' : 'col-span-1'}
             />
           ))}

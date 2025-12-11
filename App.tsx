@@ -19,7 +19,15 @@ const App: React.FC = () => {
     validUntil: '10/12/2025',
     seasonal: SEASONAL_THEMES.semana,
     header: DEFAULT_HEADER,
-    footer: DEFAULT_FOOTER
+    footer: DEFAULT_FOOTER,
+    fonts: {
+      headerTitle: { family: 'Lilita One', scale: 1 },
+      headerSubtitle: { family: 'Lilita One', scale: 1 },
+      productName: { family: 'Roboto', scale: 1 },
+      productDetails: { family: 'Roboto', scale: 1 },
+      price: { family: 'Lilita One', scale: 1 },
+      unit: { family: 'Roboto', scale: 1 }
+    }
   });
 
   const [isDownloading, setIsDownloading] = useState(false);
@@ -28,7 +36,35 @@ const App: React.FC = () => {
   useEffect(() => {
     const saved = loadFromLocalStorage();
     if (saved) {
-      setState(prev => ({ ...prev, ...saved }));
+      setState(prev => {
+        let mergedFonts = prev.fonts;
+
+        if (saved.fonts) {
+          // Migration: Handle legacy string format
+          if (typeof saved.fonts.price === 'string') {
+            const migrated: any = {};
+            Object.keys(saved.fonts).forEach(key => {
+              // @ts-ignore
+              migrated[key] = { family: saved.fonts[key], scale: 1 };
+            });
+            mergedFonts = { ...mergedFonts, ...migrated };
+          } else {
+            // Handle potentially missing scales in object format
+            const fixedFonts = { ...saved.fonts };
+            Object.keys(fixedFonts).forEach(key => {
+              // @ts-ignore
+              if (fixedFonts[key].scale === undefined) fixedFonts[key].scale = 1;
+            });
+            mergedFonts = { ...mergedFonts, ...fixedFonts };
+          }
+        }
+
+        return {
+          ...prev,
+          ...saved,
+          fonts: mergedFonts
+        };
+      });
     }
   }, []);
 

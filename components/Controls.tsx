@@ -13,7 +13,7 @@ interface ControlsProps {
   onRemoveProduct: (id: string) => void;
 }
 
-type TabType = 'tema' | 'cabecalho' | 'rodape' | 'produtos';
+type TabType = 'tema' | 'design' | 'cabecalho' | 'rodape' | 'produtos';
 
 export const Controls: React.FC<ControlsProps> = ({
   state,
@@ -23,6 +23,7 @@ export const Controls: React.FC<ControlsProps> = ({
   onRemoveProduct
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('tema');
+  const [activeFontTarget, setActiveFontTarget] = useState<keyof typeof state.fonts>('price');
   const [productTab, setProductTab] = useState<'single' | 'batch' | 'list'>('single');
   const [batchText, setBatchText] = useState('');
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -106,6 +107,7 @@ export const Controls: React.FC<ControlsProps> = ({
 
   const tabs = [
     { id: 'tema' as TabType, label: 'Tema', icon: 'palette' },
+    { id: 'design' as TabType, label: 'Design', icon: 'brush' },
     { id: 'cabecalho' as TabType, label: 'Cabeçalho', icon: 'vertical_align_top' },
     { id: 'rodape' as TabType, label: 'Rodapé', icon: 'vertical_align_bottom' },
     { id: 'produtos' as TabType, label: 'Produtos', icon: 'inventory_2' }
@@ -131,8 +133,8 @@ export const Controls: React.FC<ControlsProps> = ({
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 flex flex-col items-center gap-1 py-3 text-xs font-bold uppercase tracking-wide transition-all border-b-2 ${activeTab === tab.id
-                ? 'border-primary text-primary bg-red-50 dark:bg-red-900/20'
-                : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+              ? 'border-primary text-primary bg-red-50 dark:bg-red-900/20'
+              : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
           >
             <span className="material-icons-round text-lg">{tab.icon}</span>
@@ -156,8 +158,8 @@ export const Controls: React.FC<ControlsProps> = ({
                     key={theme.theme}
                     onClick={() => onUpdateState({ seasonal: theme })}
                     className={`flex flex-col items-center p-3 border-2 rounded-xl transition-all ${state.seasonal.theme === theme.theme
-                        ? 'border-primary bg-red-50 dark:bg-red-900/20 shadow-md'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-primary'
+                      ? 'border-primary bg-red-50 dark:bg-red-900/20 shadow-md'
+                      : 'border-gray-200 dark:border-gray-600 hover:border-primary'
                       }`}
                   >
                     <span
@@ -180,8 +182,8 @@ export const Controls: React.FC<ControlsProps> = ({
                 <button
                   onClick={() => onUpdateState({ format: 'portrait' })}
                   className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all ${state.format === 'portrait'
-                      ? 'border-primary bg-red-50 dark:bg-red-900/20'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-primary'
+                    ? 'border-primary bg-red-50 dark:bg-red-900/20'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-primary'
                     }`}
                 >
                   <span className={`material-icons-round mb-1 ${state.format === 'portrait' ? 'text-primary' : 'text-gray-400'}`}>crop_portrait</span>
@@ -191,8 +193,8 @@ export const Controls: React.FC<ControlsProps> = ({
                 <button
                   onClick={() => onUpdateState({ format: 'story' })}
                   className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all ${state.format === 'story'
-                      ? 'border-primary bg-red-50 dark:bg-red-900/20'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-primary'
+                    ? 'border-primary bg-red-50 dark:bg-red-900/20'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-primary'
                     }`}
                 >
                   <span className={`material-icons-round mb-1 ${state.format === 'story' ? 'text-primary' : 'text-gray-400'}`}>smartphone</span>
@@ -201,6 +203,8 @@ export const Controls: React.FC<ControlsProps> = ({
                 </button>
               </div>
             </section>
+
+
 
             <section>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">
@@ -231,6 +235,98 @@ export const Controls: React.FC<ControlsProps> = ({
                 className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:ring-primary focus:border-primary p-2.5"
                 placeholder="DD/MM/YYYY"
               />
+            </section>
+          </>
+        )}
+
+        {/* DESIGN TAB */}
+        {activeTab === 'design' && (
+          <>
+            <section>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">
+                Personalizar Tipografia
+              </h3>
+
+              <div className="flex flex-wrap gap-2 mb-6">
+                {[
+                  { id: 'headerTitle', label: 'Título' },
+                  { id: 'headerSubtitle', label: 'Subtítulo' },
+                  { id: 'productName', label: 'Produto' },
+                  { id: 'price', label: 'Preço' },
+                  { id: 'unit', label: 'Unidade' },
+                  { id: 'productDetails', label: 'Detalhes' },
+                ].map(target => (
+                  <button
+                    key={target.id}
+                    onClick={() => setActiveFontTarget(target.id as keyof typeof state.fonts)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase transition-all ${activeFontTarget === target.id
+                      ? 'bg-primary text-white shadow-md'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400'
+                      }`}
+                  >
+                    {target.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Tamanho da Fonte</span>
+                  <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300 font-mono">
+                    {Math.round(state.fonts[activeFontTarget].scale * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.05"
+                  value={state.fonts[activeFontTarget].scale}
+                  onChange={(e) => onUpdateState({
+                    fonts: {
+                      ...state.fonts,
+                      [activeFontTarget]: {
+                        ...state.fonts[activeFontTarget],
+                        scale: parseFloat(e.target.value)
+                      }
+                    }
+                  })}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary dark:bg-gray-700"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  'Lilita One',
+                  'Roboto',
+                  'Montserrat',
+                  'Oswald',
+                  'Anton',
+                  'Bangers',
+                  'Lobster',
+                  'Fjalla One'
+                ].map(font => (
+                  <button
+                    key={font}
+                    onClick={() => onUpdateState({
+                      fonts: {
+                        ...state.fonts,
+                        [activeFontTarget]: {
+                          ...state.fonts[activeFontTarget],
+                          family: font
+                        }
+                      }
+                    })}
+                    className={`p-3 border-2 rounded-xl transition-all ${state.fonts[activeFontTarget].family === font
+                      ? 'border-primary bg-red-50 dark:bg-red-900/20 shadow-md'
+                      : 'border-gray-200 dark:border-gray-600 hover:border-primary'
+                      }`}
+                    style={{ fontFamily: font }}
+                  >
+                    <span className="text-lg">{font}</span>
+                  </button>
+                ))}
+              </div>
             </section>
           </>
         )}

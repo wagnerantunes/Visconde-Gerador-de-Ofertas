@@ -41,6 +41,20 @@ export interface FooterConfig {
   };
 }
 
+export interface TextStyle {
+  family: string;
+  scale: number;
+}
+
+export interface FontConfig {
+  headerTitle: TextStyle;
+  headerSubtitle: TextStyle;
+  productName: TextStyle;
+  productDetails: TextStyle;
+  price: TextStyle;
+  unit: TextStyle;
+}
+
 export interface AppState {
   format: FormatType;
   columns: number;
@@ -51,4 +65,5 @@ export interface AppState {
   seasonal: SeasonalConfig;
   header: HeaderConfig;
   footer: FooterConfig;
+  fonts: FontConfig;
 }
