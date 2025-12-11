@@ -79,14 +79,64 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                             <option>100g</option>
                         </select>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            checked={editData.isHighlight}
-                            onChange={(e) => setEditData({ ...editData, isHighlight: e.target.checked })}
-                            className="w-4 h-4 text-primary rounded"
-                        />
-                        <label className="text-xs">Destaque</label>
+                    {/* Controles Avançados do Produto */}
+                    <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+                        {/* Tamanho e Destaque */}
+                        <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Layout</label>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={editData.isHighlight}
+                                        onChange={(e) => setEditData({ ...editData, isHighlight: e.target.checked })}
+                                        className="w-3 h-3 text-primary rounded"
+                                    />
+                                    <span className="text-[10px] text-primary font-bold">Cor Destaque</span>
+                                </label>
+                            </div>
+                            <div className="flex gap-1">
+                                {[1, 2, 3].map(cols => (
+                                    <button
+                                        key={cols}
+                                        onClick={() => setEditData({ ...editData, cols })}
+                                        className={`flex-1 py-1 text-[10px] font-bold border rounded transition-colors ${(editData.cols || (editData.isHighlight ? 2 : 1)) === cols
+                                                ? 'bg-gray-800 text-white border-gray-800 dark:bg-white dark:text-gray-900'
+                                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                                            }`}
+                                    >
+                                        {cols}x Largura
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Ajustes de Imagem */}
+                        <div>
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 block">Ajuste da Imagem</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] text-gray-500 mb-0.5">Zoom ({editData.imageScale || 1}x)</span>
+                                    <input
+                                        type="range"
+                                        min="0.5" max="2" step="0.1"
+                                        value={editData.imageScale || 1}
+                                        onChange={(e) => setEditData({ ...editData, imageScale: parseFloat(e.target.value) })}
+                                        className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-600"
+                                    />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] text-gray-500 mb-0.5">Posição ({editData.imageOffsetY || 0}%)</span>
+                                    <input
+                                        type="range"
+                                        min="-50" max="50" step="5"
+                                        value={editData.imageOffsetY || 0}
+                                        onChange={(e) => setEditData({ ...editData, imageOffsetY: parseInt(e.target.value) })}
+                                        className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-600"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div className="flex gap-2 pt-2">
                         <button

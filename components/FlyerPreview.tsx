@@ -119,7 +119,7 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
               secondaryColor={seasonal.secondaryColor}
               fonts={state.fonts}
               layout={state.layout}
-              className={product.isHighlight ? 'col-span-2' : 'col-span-1'}
+              style={{ gridColumn: `span ${product.cols || (product.isHighlight ? 2 : 1)}` }}
             />
           ))}
         </div>

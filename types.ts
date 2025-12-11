@@ -6,6 +6,9 @@ export interface Product {
   unit: string;
   image: string;
   isHighlight: boolean;
+  cols?: number;
+  imageScale?: number;
+  imageOffsetY?: number;
 }
 
 export type FormatType = 'portrait' | 'story';

@@ -8,6 +8,7 @@ interface ProductCardProps {
   className?: string;
   fonts: FontConfig;
   layout?: LayoutConfig;
+  style?: React.CSSProperties;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -16,7 +17,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   secondaryColor,
   className = '',
   fonts,
-  layout
+  layout,
+  style
 }) => {
   const height = layout?.cardHeight ? `${layout.cardHeight}px` : '18rem';
   const isCompact = layout?.cardStyle === 'compact';
@@ -26,19 +28,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     return (
       <div
         className={`bg-white rounded-2xl shadow-lg p-0 relative flex items-stretch border border-gray-100 overflow-hidden group ${className}`}
-        style={{ height }}
+        style={{ height, ...style }}
       >
-        {/* Imagem - 70% do espaço horizontal */}
-        <div className="flex-shrink-0 w-[70%] flex items-center justify-center bg-gradient-to-br from-gray-50 to-white p-4">
+        {/* Imagem - 55% do espaço horizontal */}
+        <div className="flex-shrink-0 w-[55%] flex items-center justify-center bg-gradient-to-br from-gray-50 to-white p-4">
           <img
             src={product.image}
             alt={product.name}
-            className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-300"
+            className="w-full h-full object-contain transition-transform duration-300"
+            style={{
+              transform: `scale(${product.imageScale || 1}) translateY(${product.imageOffsetY || 0}%)`
+            }}
           />
         </div>
 
-        {/* Informações - 30% do espaço horizontal */}
-        <div className="flex-1 flex flex-col justify-center p-4 pr-6 relative">
+        {/* Informações - Restante do espaço com leve sobreposição */}
+        <div className="flex-1 flex flex-col justify-center p-4 pr-6 relative z-10 -ml-8">
           <h3
             className="font-black text-gray-800 text-2xl leading-tight uppercase tracking-tight mb-2"
             style={{
@@ -95,7 +100,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <div
       className={`bg-white rounded-2xl shadow-md relative flex flex-col border border-gray-100 group ${className} hover:shadow-xl transition-shadow duration-300 overflow-hidden`}
-      style={{ height }}
+      style={{ height, ...style }}
     >
       {/* Price Badge - Canto superior direito, fora da foto */}
       <div
@@ -128,7 +133,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <img
           src={product.image}
           alt={product.name}
-          className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-300"
+          className="w-full h-full object-contain transition-transform duration-300"
+          style={{
+            transform: `scale(${product.imageScale || 1}) translateY(${product.imageOffsetY || 0}%)`
+          }}
         />
         {/* Compact Mode Overlay Gradient */}
         {isCompact && (
