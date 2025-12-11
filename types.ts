@@ -4,7 +4,7 @@ export interface Page {
 
 export interface Product {
   id: string;
-  pageId: string;
+  pageId?: string;
   name: string;
   details: string;
   price: number;

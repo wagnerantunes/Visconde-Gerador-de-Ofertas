@@ -110,3 +110,43 @@ export const paginateProducts = (
 
     return pages;
 };
+
+// --- Helper Functions Restored ---
+
+export const imageToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+    });
+};
+
+export const parseProductList = (text: string): any[] => {
+    const lines = text.split('\n').filter(l => l.trim().length > 0);
+    return lines.map(line => {
+        // Tenta achar preço formato 00,00 ou 00.00
+        // Regex pega o último valor numérico da linha que pareça preço
+        const priceMatch = line.match(/(\d+[.,]\d{2})(?!.*\d)/);
+        let price = 0;
+        let name = line;
+
+        if (priceMatch) {
+            const priceStr = priceMatch[0];
+            price = parseFloat(priceStr.replace(',', '.'));
+            name = line.replace(priceStr, '').replace('R$', '').trim();
+
+            // Limpeza extra de caracteres comuns em listas coladas
+            name = name.replace(/[-:]$/, '').trim();
+            if (name.endsWith('-')) name = name.slice(0, -1).trim();
+        }
+
+        return {
+            name,
+            price,
+            unit: 'un', // Default
+            details: '',
+            isHighlight: false
+        };
+    }).filter(p => p.name.length > 0); // Filtra linhas vazias ou invalidas
+};
