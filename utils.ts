@@ -1,25 +1,24 @@
 import { AppState } from './types';
 import { MOCK_IMAGES } from './constants';
+import { PRODUCT_FILENAMES } from './productImages';
 
-export const PRODUCT_IMAGE_MAP: Record<string, string> = {
-    'picanha': '/produtos/Picanha.png',
-    'chorizo': '/produtos/BifeChorizo.png',
-    'bife de chorizo': '/produtos/BifeChorizo.png',
-    'coxa': '/produtos/CoxaComSobrecoxa.png',
-    'sobrecoxa': '/produtos/CoxaComSobrecoxa.png',
-    'acem': '/produtos/AcemPicado.png',
-    'acém': '/produtos/AcemPicado.png',
-    'linguiça': '/produtos/LinguicaToscana.png',
-    'linguica': '/produtos/LinguicaToscana.png',
-    'toscana': '/produtos/LinguicaToscana.png'
-};
+export const PRODUCT_IMAGE_MAP: Record<string, string> = {};
+
+PRODUCT_FILENAMES.forEach(filename => {
+    // Chave sem extensão e sem acentos para facilitar busca
+    const key = filename.replace(/\.png$/i, '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+    PRODUCT_IMAGE_MAP[key] = `/produtos/${filename}`;
+});
 
 export const findProductImage = (productName: string): string => {
-    const normalizedName = productName.toLowerCase();
+    const normalizedName = productName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
 
-    for (const [key, path] of Object.entries(PRODUCT_IMAGE_MAP)) {
+    // Busca parcial priorizando matches mais específicos (strings mais longas)
+    const keys = Object.keys(PRODUCT_IMAGE_MAP).sort((a, b) => b.length - a.length);
+
+    for (const key of keys) {
         if (normalizedName.includes(key)) {
-            return path;
+            return PRODUCT_IMAGE_MAP[key];
         }
     }
 
