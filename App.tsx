@@ -3,6 +3,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { toPng } from 'html-to-image';
 import { Controls } from './components/Controls';
+import { ExportModal } from './components/ExportModal';
 import { FlyerPreview } from './components/FlyerPreview';
 import { AppState, Product } from './types';
 import { INITIAL_PRODUCTS } from './constants';
@@ -36,6 +37,7 @@ const App: React.FC = () => {
   });
 
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -140,29 +142,7 @@ const App: React.FC = () => {
     }));
   };
 
-  const handleDownload = async () => {
-    setIsDownloading(true);
-    try {
-      const element = document.getElementById('flyer-preview');
-      if (!element) return;
 
-      const dataUrl = await toPng(element, {
-        quality: 1.0,
-        pixelRatio: 2,
-        backgroundColor: '#ffffff'
-      });
-
-      const link = document.createElement('a');
-      link.download = `flyer-${state.seasonal.theme}-${Date.now()}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error('Erro ao fazer download:', error);
-      alert('Erro ao gerar imagem. Tente novamente.');
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
   const handleShare = async () => {
     setIsDownloading(true);
@@ -172,7 +152,7 @@ const App: React.FC = () => {
 
       const dataUrl = await toPng(element, {
         quality: 1.0,
-        pixelRatio: 2,
+        pixelRatio: 3,
         backgroundColor: '#ffffff'
       });
 
@@ -240,12 +220,13 @@ const App: React.FC = () => {
             </button>
             <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 self-center mx-1"></div>
             <button
-              className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors ${isDownloading ? 'text-gray-400' : 'text-primary'}`}
-              title="Download Image"
-              onClick={handleDownload}
+              className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2 ${isDownloading ? 'text-gray-400' : 'text-primary'}`}
+              title="Baixar Flyer (PDF/PNG)"
+              onClick={() => setIsExportModalOpen(true)}
               disabled={isDownloading}
             >
-              <span className="material-icons-round">{isDownloading ? 'hourglass_empty' : 'download'}</span>
+              <span className="material-icons-round text-xl">{isDownloading ? 'hourglass_empty' : 'download'}</span>
+              <span className="text-sm font-bold hidden sm:inline">Baixar</span>
             </button>
             <button
               className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors ${isDownloading ? 'text-gray-400' : 'text-green-600'}`}
@@ -272,6 +253,7 @@ const App: React.FC = () => {
           </p>
         </main>
       </div>
+      <ExportModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} state={state} />
     </DndContext>
   );
 };
