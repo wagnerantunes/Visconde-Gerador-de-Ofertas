@@ -143,6 +143,34 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
           </div>
         </section>
 
+        {/* Store Information */}
+        <section>
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
+            <span className="material-icons-round text-lg">store</span> Informações da Loja
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Loja</label>
+              <input
+                type="text"
+                value={state.storeName}
+                onChange={(e) => onUpdateState({ storeName: e.target.value })}
+                className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:ring-primary focus:border-primary p-2.5"
+                placeholder="Ex: Visconde"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Válido Até</label>
+              <input
+                type="date"
+                value={state.validUntil}
+                onChange={(e) => onUpdateState({ validUntil: e.target.value })}
+                className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:ring-primary focus:border-primary p-2.5"
+              />
+            </div>
+          </div>
+        </section>
+
         <hr className="border-gray-200 dark:border-gray-700" />
 
         {/* Product Manager */}
@@ -297,8 +325,8 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
 
               {sheetStatus && (
                 <div className={`p-3 rounded-lg text-sm ${sheetStatus.startsWith('✅')
-                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-                    : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                  : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
                   }`}>
                   {sheetStatus}
                 </div>
