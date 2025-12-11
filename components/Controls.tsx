@@ -4,6 +4,7 @@ import { MOCK_IMAGES } from '../constants';
 import { SEASONAL_THEMES } from '../seasonalThemes';
 import { parseProductList, imageToBase64, findProductImage } from '../utils';
 import { ProductList } from './ProductList';
+import { ImageGalleryModal } from './ImageGalleryModal';
 
 interface ControlsProps {
   state: AppState;
@@ -25,6 +26,7 @@ export const Controls: React.FC<ControlsProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('tema');
   const [activeFontTarget, setActiveFontTarget] = useState<keyof typeof state.fonts>('price');
   const [productTab, setProductTab] = useState<'single' | 'batch' | 'list'>('single');
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [batchText, setBatchText] = useState('');
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -513,6 +515,16 @@ export const Controls: React.FC<ControlsProps> = ({
                   </label>
                 </div>
 
+                <div className="flex justify-center -mt-3 mb-3">
+                  <button
+                    onClick={() => setIsGalleryOpen(true)}
+                    className="text-xs font-bold text-primary hover:text-red-700 flex items-center gap-1 bg-red-50 hover:bg-red-100 px-4 py-1.5 rounded-full transition-colors border border-red-100"
+                  >
+                    <span className="material-icons-round text-sm">photo_library</span>
+                    Escolher da Galeria
+                  </button>
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium mb-1">Nome do Produto</label>
                   <input
@@ -612,6 +624,15 @@ export const Controls: React.FC<ControlsProps> = ({
           </>
         )}
       </div>
+
+      <ImageGalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        onSelect={(img) => {
+          setNewProduct({ ...newProduct, image: img });
+          setIsGalleryOpen(false);
+        }}
+      />
     </aside>
   );
 };

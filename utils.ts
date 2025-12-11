@@ -1,7 +1,7 @@
 import { AppState } from './types';
 import { MOCK_IMAGES } from './constants';
 
-const PRODUCT_IMAGE_MAP: Record<string, string> = {
+export const PRODUCT_IMAGE_MAP: Record<string, string> = {
     'picanha': '/produtos/Picanha.png',
     'chorizo': '/produtos/BifeChorizo.png',
     'bife de chorizo': '/produtos/BifeChorizo.png',

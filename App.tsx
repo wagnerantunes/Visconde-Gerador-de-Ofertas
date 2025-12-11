@@ -153,6 +153,50 @@ const App: React.FC = () => {
     }
   };
 
+  const handleShare = async () => {
+    setIsDownloading(true);
+    try {
+      const element = document.getElementById('flyer-preview');
+      if (!element) return;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+
+        try {
+          // @ts-ignore
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'share.png', { type: 'image/png' })] })) {
+            await navigator.share({
+              // @ts-ignore
+              files: [new File([blob], `flyer-${state.seasonal.theme}.png`, { type: 'image/png' })],
+              title: 'Minhas Ofertas',
+              text: 'Confira nossas ofertas especiais!'
+            });
+          } else {
+            const link = document.createElement('a');
+            link.download = `flyer-${state.seasonal.theme}-${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            alert("Imagem baixada! Compartilhe manualmente no WhatsApp.");
+          }
+        } catch (e) {
+          console.log('Share cancelado ou erro:', e);
+        }
+      }, 'image/png');
+    } catch (error) {
+      console.error('Erro ao compartilhar:', error);
+      alert('Erro ao processar imagem.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -194,6 +238,14 @@ const App: React.FC = () => {
               disabled={isDownloading}
             >
               <span className="material-icons-round">{isDownloading ? 'hourglass_empty' : 'download'}</span>
+            </button>
+            <button
+              className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors ${isDownloading ? 'text-gray-400' : 'text-green-600'}`}
+              title="Compartilhar"
+              onClick={handleShare}
+              disabled={isDownloading}
+            >
+              <span className="material-icons-round">share</span>
             </button>
           </div>
 
