@@ -50,9 +50,11 @@ export interface FooterConfig {
 export interface TextStyle {
   family: string;
   scale: number;
+  color?: string;
 }
 
 export interface FontConfig {
+  storeName: TextStyle;
   headerTitle: TextStyle;
   headerSubtitle: TextStyle;
   productName: TextStyle;

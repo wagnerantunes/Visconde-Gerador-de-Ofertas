@@ -48,7 +48,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             className="font-black text-gray-800 text-2xl leading-tight uppercase tracking-tight mb-2"
             style={{
               fontFamily: fonts.productName.family,
-              fontSize: `${1.5 * fonts.productName.scale}rem`
+              fontSize: `${1.5 * fonts.productName.scale}rem`,
+              color: fonts.productName.color || '#1f2937'
             }}
           >
             {product.name}
@@ -74,7 +75,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <span className="text-white text-[10px] font-bold uppercase mb-1">Apenas</span>
               <div
                 className="flex items-baseline font-display leading-none"
-                style={{ color: secondaryColor, fontFamily: fonts.price.family }}
+                style={{ color: fonts.price.color || secondaryColor, fontFamily: fonts.price.family }}
               >
                 <span className="text-lg mr-0.5" style={{ fontSize: `${1.125 * fonts.price.scale}rem` }}>R$</span>
                 <span className="text-6xl drop-shadow-sm" style={{ fontSize: `${3.75 * fonts.price.scale}rem` }}>{Math.floor(product.price)}</span>
@@ -85,7 +86,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 style={{
                   backgroundColor: `${primaryColor}dd`,
                   fontFamily: fonts.unit.family,
-                  fontSize: `${0.625 * fonts.unit.scale}rem`
+                  fontSize: `${0.625 * fonts.unit.scale}rem`,
+                  color: fonts.unit.color || 'white'
                 }}
               >
                 {product.unit}
@@ -110,7 +112,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="flex flex-col items-center font-display leading-none">
           <div
             className="flex items-baseline"
-            style={{ color: secondaryColor, fontFamily: fonts.price.family }}
+            style={{ color: fonts.price.color || secondaryColor, fontFamily: fonts.price.family }}
           >
             <span className="text-sm mr-0.5" style={{ fontSize: `${0.875 * fonts.price.scale}rem` }}>R$</span>
             <span className="text-4xl font-bold" style={{ fontSize: `${2.25 * fonts.price.scale}rem` }}>{Math.floor(product.price)}</span>
@@ -120,7 +122,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             className="text-white text-[9px] font-bold uppercase mt-0.5"
             style={{
               fontFamily: fonts.unit.family,
-              fontSize: `${0.5625 * fonts.unit.scale}rem`
+              fontSize: `${0.5625 * fonts.unit.scale}rem`,
+              color: fonts.unit.color || 'white'
             }}
           >
             {product.unit}
@@ -150,7 +153,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           className="font-bold text-gray-800 text-center text-base leading-tight uppercase w-full line-clamp-2"
           style={{
             fontFamily: fonts.productName.family,
-            fontSize: `${1 * fonts.productName.scale}rem`
+            fontSize: `${1 * fonts.productName.scale}rem`,
+            color: fonts.productName.color || '#1f2937'
           }}
         >
           {product.name}
@@ -160,7 +164,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             className="text-[10px] text-gray-500 mt-1 text-center line-clamp-1"
             style={{
               fontFamily: fonts.productDetails.family,
-              fontSize: `${0.625 * fonts.productDetails.scale}rem`
+              fontSize: `${0.625 * fonts.productDetails.scale}rem`,
+              color: fonts.productDetails.color || '#6b7280'
             }}
           >
             {product.details}

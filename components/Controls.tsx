@@ -354,6 +354,7 @@ export const Controls: React.FC<ControlsProps> = ({
 
               <div className="flex flex-wrap gap-2 mb-6">
                 {[
+                  { id: 'storeName', label: 'Loja' },
                   { id: 'headerTitle', label: 'Título' },
                   { id: 'headerSubtitle', label: 'Subtítulo' },
                   { id: 'productName', label: 'Produto' },
@@ -398,6 +399,40 @@ export const Controls: React.FC<ControlsProps> = ({
                   })}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary dark:bg-gray-700"
                 />
+              </div>
+
+              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Cor Personalizada</span>
+                  <input
+                    type="color"
+                    value={state.fonts[activeFontTarget].color || '#000000'}
+                    onChange={(e) => onUpdateState({
+                      fonts: {
+                        ...state.fonts,
+                        [activeFontTarget]: {
+                          ...state.fonts[activeFontTarget],
+                          color: e.target.value
+                        }
+                      }
+                    })}
+                    className="h-8 w-14 block bg-white border border-gray-300 rounded-md cursor-pointer disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-900 dark:border-gray-700"
+                  />
+                </div>
+                {state.fonts[activeFontTarget].color && (
+                  <button
+                    onClick={() => {
+                      const updatedFont = { ...state.fonts[activeFontTarget] };
+                      delete updatedFont.color;
+                      onUpdateState({
+                        fonts: { ...state.fonts, [activeFontTarget]: updatedFont }
+                      });
+                    }}
+                    className="text-xs text-red-500 hover:text-red-700 text-right underline"
+                  >
+                    Restaurar Cor do Tema
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

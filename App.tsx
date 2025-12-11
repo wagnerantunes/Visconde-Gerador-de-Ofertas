@@ -23,6 +23,7 @@ const App: React.FC = () => {
     header: DEFAULT_HEADER,
     footer: DEFAULT_FOOTER,
     fonts: {
+      storeName: { family: 'Lilita One', scale: 1 },
       headerTitle: { family: 'Lilita One', scale: 1 },
       headerSubtitle: { family: 'Lilita One', scale: 1 },
       productName: { family: 'Roboto', scale: 1 },
@@ -39,6 +40,18 @@ const App: React.FC = () => {
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check system preference initially
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches || document.documentElement.classList.contains('dark');
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (isDarkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [isDarkMode]);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -218,6 +231,14 @@ const App: React.FC = () => {
         <main className="flex-1 bg-gray-200 dark:bg-black relative flex flex-col items-center justify-center p-8 overflow-hidden">
           {/* Floating Toolbar */}
           <div className="absolute top-6 flex gap-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-full shadow-lg z-20 border border-gray-100 dark:border-gray-700">
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 transition-colors"
+              title={isDarkMode ? "Modo Claro" : "Modo Escuro"}
+            >
+              <span className="material-icons-round">{isDarkMode ? 'light_mode' : 'dark_mode'}</span>
+            </button>
+            <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 self-center mx-1"></div>
             <button
               onClick={() => handleZoom('out')}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 transition-colors"

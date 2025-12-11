@@ -13,7 +13,7 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
     a3: { w: 1754, h: 2480 },
     letter: { w: 1275, h: 1650 },
     story: { w: 1080, h: 1920 },
-    feed: { w: 1080, h: 1080 },
+    feed: { w: 1080, h: 1440 },
   };
 
   const baseSize = SIZES[state.paperSize] || SIZES.a4;
@@ -56,7 +56,7 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
             <h1
               className="font-display text-6xl drop-shadow-[0_4px_0_rgba(0,0,0,0.5)] leading-none uppercase tracking-wide"
               style={{
-                color: seasonal.secondaryColor,
+                color: state.fonts.headerTitle.color || seasonal.secondaryColor,
                 fontFamily: state.fonts.headerTitle.family,
                 fontSize: `${3.75 * state.fonts.headerTitle.scale}rem`
               }}
@@ -66,6 +66,7 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
             <h2
               className="font-display text-4xl text-white drop-shadow-md leading-none uppercase"
               style={{
+                color: state.fonts.headerSubtitle.color || 'white',
                 fontFamily: state.fonts.headerSubtitle.family,
                 fontSize: `${2.25 * state.fonts.headerSubtitle.scale}rem`
               }}
@@ -100,7 +101,9 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
               className="text-sm font-bold px-3 py-1 rounded-full mt-1 uppercase"
               style={{
                 backgroundColor: seasonal.secondaryColor,
-                color: seasonal.primaryColor
+                color: state.fonts.storeName?.color || seasonal.primaryColor,
+                fontFamily: state.fonts.storeName?.family || 'Roboto',
+                fontSize: `${((state.fonts.storeName?.scale || 1) * 0.875).toFixed(3)}rem`
               }}
             >
               {header.storeName}
@@ -118,7 +121,7 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
           className="font-bold text-lg uppercase tracking-wider flex items-center gap-2"
           style={{ color: seasonal.primaryColor }}
         >
-          <span className="material-icons-round">calendar_today</span> Válido até {state.validUntil}
+          <span className="material-icons-round">calendar_today</span> Ofertas válidas até {state.validUntil} ou enquanto durarem os estoques
         </span>
       </div>
 
