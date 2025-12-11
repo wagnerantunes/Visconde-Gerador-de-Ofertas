@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AppState, Product } from '../types';
 import { MOCK_IMAGES } from '../constants';
+import { fetchProductsFromSheet } from '../services/api';
 
 interface ControlsProps {
   state: AppState;
@@ -9,7 +10,9 @@ interface ControlsProps {
 }
 
 export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddProduct }) => {
-  const [activeTab, setActiveTab] = useState<'single' | 'batch'>('single');
+  const [activeTab, setActiveTab] = useState<'single' | 'batch' | 'sheet'>('sheet');
+  const [isLoadingSheet, setIsLoadingSheet] = useState(false);
+  const [sheetStatus, setSheetStatus] = useState<string>('');
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
     price: 0,
@@ -20,7 +23,7 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
 
   const handleAddProduct = () => {
     if (!newProduct.name || !newProduct.price) return;
-    
+
     onAddProduct({
       id: Date.now().toString(),
       name: newProduct.name,
@@ -39,6 +42,23 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
       isHighlight: false,
       details: ''
     });
+  };
+
+  const handleLoadFromSheet = async () => {
+    setIsLoadingSheet(true);
+    setSheetStatus('Carregando produtos...');
+
+    try {
+      const products = await fetchProductsFromSheet();
+      onUpdateState({ products });
+      setSheetStatus(`✅ ${products.length} produtos carregados com sucesso!`);
+
+      setTimeout(() => setSheetStatus(''), 3000);
+    } catch (error) {
+      setSheetStatus(`❌ Erro ao carregar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    } finally {
+      setIsLoadingSheet(false);
+    }
   };
 
   return (
@@ -63,11 +83,10 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => onUpdateState({ format: 'portrait' })}
-              className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all ${
-                state.format === 'portrait'
-                  ? 'border-primary bg-red-50 dark:bg-red-900/20'
-                  : 'border-gray-200 dark:border-gray-600 hover:border-primary'
-              }`}
+              className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all ${state.format === 'portrait'
+                ? 'border-primary bg-red-50 dark:bg-red-900/20'
+                : 'border-gray-200 dark:border-gray-600 hover:border-primary'
+                }`}
             >
               <span className={`material-icons-round mb-1 ${state.format === 'portrait' ? 'text-primary' : 'text-gray-400'}`}>crop_portrait</span>
               <span className={`font-bold text-sm ${state.format === 'portrait' ? 'text-primary' : 'text-gray-600 dark:text-gray-300'}`}>Portrait</span>
@@ -75,11 +94,10 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
             </button>
             <button
               onClick={() => onUpdateState({ format: 'story' })}
-              className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all ${
-                state.format === 'story'
-                  ? 'border-primary bg-red-50 dark:bg-red-900/20'
-                  : 'border-gray-200 dark:border-gray-600 hover:border-primary'
-              }`}
+              className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all ${state.format === 'story'
+                ? 'border-primary bg-red-50 dark:bg-red-900/20'
+                : 'border-gray-200 dark:border-gray-600 hover:border-primary'
+                }`}
             >
               <span className={`material-icons-round mb-1 ${state.format === 'story' ? 'text-primary' : 'text-gray-400'}`}>smartphone</span>
               <span className={`font-bold text-sm ${state.format === 'story' ? 'text-primary' : 'text-gray-600 dark:text-gray-300'}`}>Story</span>
@@ -132,24 +150,29 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
           <h3 className="w-full text-sm font-semibold uppercase tracking-wider text-primary flex items-center gap-2 mb-2">
             <span className="material-icons-round text-lg">inventory_2</span> Gerenciar Produtos
           </h3>
-          
+
           <div className="flex w-full mb-2">
-             <button
-               onClick={() => setActiveTab('single')}
-               className={`w-1/2 text-center py-2.5 text-xs font-bold uppercase tracking-wide cursor-pointer border-b-2 transition-all flex items-center justify-center gap-1 ${
-                 activeTab === 'single' ? 'border-primary text-primary' : 'border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-               }`}
-             >
-               <span className="material-icons-round text-base">add_circle</span> Adicionar
-             </button>
-             <button
-               onClick={() => setActiveTab('batch')}
-               className={`w-1/2 text-center py-2.5 text-xs font-bold uppercase tracking-wide cursor-pointer border-b-2 transition-all flex items-center justify-center gap-1 ${
-                 activeTab === 'batch' ? 'border-primary text-primary' : 'border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-               }`}
-             >
-               <span className="material-icons-round text-base">list_alt</span> Colar Lista
-             </button>
+            <button
+              onClick={() => setActiveTab('sheet')}
+              className={`w-1/3 text-center py-2.5 text-xs font-bold uppercase tracking-wide cursor-pointer border-b-2 transition-all flex items-center justify-center gap-1 ${activeTab === 'sheet' ? 'border-primary text-primary' : 'border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                }`}
+            >
+              <span className="material-icons-round text-base">cloud_download</span> Planilha
+            </button>
+            <button
+              onClick={() => setActiveTab('single')}
+              className={`w-1/3 text-center py-2.5 text-xs font-bold uppercase tracking-wide cursor-pointer border-b-2 transition-all flex items-center justify-center gap-1 ${activeTab === 'single' ? 'border-primary text-primary' : 'border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                }`}
+            >
+              <span className="material-icons-round text-base">add_circle</span> Adicionar
+            </button>
+            <button
+              onClick={() => setActiveTab('batch')}
+              className={`w-1/3 text-center py-2.5 text-xs font-bold uppercase tracking-wide cursor-pointer border-b-2 transition-all flex items-center justify-center gap-1 ${activeTab === 'batch' ? 'border-primary text-primary' : 'border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                }`}
+            >
+              <span className="material-icons-round text-base">list_alt</span> Colar Lista
+            </button>
           </div>
 
           {activeTab === 'single' && (
@@ -244,6 +267,47 @@ export const Controls: React.FC<ControlsProps> = ({ state, onUpdateState, onAddP
               <button className="w-full bg-gray-800 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white font-bold py-3 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2">
                 <span className="material-icons-round">playlist_add</span> Processar Lista
               </button>
+            </div>
+          )}
+
+          {activeTab === 'sheet' && (
+            <div className="w-full space-y-4 animate-fadeIn">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-300">
+                <p className="font-bold flex items-center gap-1 mb-1">
+                  <span className="material-icons-round text-sm">info</span> Google Sheets:
+                </p>
+                Carregue os produtos diretamente da planilha do Google Sheets. Os produtos marcados com "X" na coluna "Oferta" serão importados.
+              </div>
+
+              <button
+                onClick={handleLoadFromSheet}
+                disabled={isLoadingSheet}
+                className="w-full bg-primary hover:bg-red-800 disabled:bg-gray-400 text-white font-bold py-3 rounded-lg shadow-lg shadow-red-500/30 transition-all flex items-center justify-center gap-2"
+              >
+                {isLoadingSheet ? (
+                  <>
+                    <span className="material-icons-round animate-spin">sync</span> Carregando...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-icons-round">cloud_download</span> Carregar da Planilha
+                  </>
+                )}
+              </button>
+
+              {sheetStatus && (
+                <div className={`p-3 rounded-lg text-sm ${sheetStatus.startsWith('✅')
+                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                    : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                  }`}>
+                  {sheetStatus}
+                </div>
+              )}
+
+              <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                <p><strong>Produtos atuais:</strong> {state.products.length}</p>
+                <p className="text-[10px] opacity-70">As imagens devem estar em /public/produtos/[Nome do Produto].png</p>
+              </div>
             </div>
           )}
         </section>
