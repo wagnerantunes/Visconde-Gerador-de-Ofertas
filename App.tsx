@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { toPng } from 'html-to-image';
 import { Controls } from './components/Controls';
 import { ExportModal } from './components/ExportModal';
@@ -17,7 +17,8 @@ const App: React.FC = () => {
     columns: 3,
     autoRows: true,
     zoom: 50,
-    products: INITIAL_PRODUCTS,
+    pages: [{ id: 'page-1' }],
+    products: INITIAL_PRODUCTS.map(p => ({ ...p, pageId: 'page-1' })),
     validUntil: '10/12/2025',
     seasonal: SEASONAL_THEMES.semana,
     header: DEFAULT_HEADER,
@@ -80,6 +81,13 @@ const App: React.FC = () => {
           }
         }
 
+        let pages = saved.pages || [{ id: 'page-1' }];
+        let products = saved.products || [];
+        // Migration: Ensure all products have a pageId
+        if (products.length > 0 && !products[0].pageId) {
+          products = products.map(p => ({ ...p, pageId: pages[0].id }));
+        }
+
         const mergedLayout = saved.layout || {
           cardHeight: 280,
           rowGap: 16,
@@ -103,6 +111,8 @@ const App: React.FC = () => {
           ...saved,
           paperSize,
           orientation,
+          pages,
+          products,
           fonts: mergedFonts,
           layout: mergedLayout
         };
@@ -127,10 +137,32 @@ const App: React.FC = () => {
   };
 
   const addProduct = (product: Product) => {
+    // Add to last page by default
+    const lastPageId = state.pages[state.pages.length - 1]?.id || 'page-1';
     setState(prev => ({
       ...prev,
-      products: [...prev.products, product]
+      products: [...prev.products, { ...product, pageId: lastPageId }]
     }));
+  };
+
+  const addPage = () => {
+    setState(prev => ({
+      ...prev,
+      pages: [...prev.pages, { id: `page-${Date.now()}` }]
+    }));
+  };
+
+  const removePage = (id: string) => {
+    if (state.pages.length <= 1) return;
+    setState(prev => {
+      // Move products from deleted page to first page (safety)
+      const productsToKeep = prev.products.map(p => p.pageId === id ? { ...p, pageId: prev.pages[0].id } : p);
+      return {
+        ...prev,
+        products: productsToKeep,
+        pages: prev.pages.filter(p => p.id !== id)
+      };
+    });
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
@@ -275,13 +307,12 @@ const App: React.FC = () => {
           </div>
 
           {/* Canvas Container */}
-          <div className="relative w-full h-full flex items-center justify-center overflow-auto p-10">
-            <SortableContext
-              items={state.products.map(p => p.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <FlyerPreview state={state} />
-            </SortableContext>
+          <div className="relative w-full h-full flex items-center justify-center overflow-auto p-10 bg-gray-200 dark:bg-black">
+            <FlyerPreview
+              state={state}
+              onAddPage={addPage}
+              onRemovePage={removePage}
+            />
           </div>
 
           <p className="text-gray-500 dark:text-gray-400 text-xs mt-6 absolute bottom-4">

@@ -1,5 +1,10 @@
+export interface Page {
+  id: string;
+}
+
 export interface Product {
   id: string;
+  pageId: string;
   name: string;
   details: string;
   price: number;
@@ -72,6 +77,7 @@ export interface LayoutConfig {
 export interface AppState {
   paperSize: PaperSize;
   orientation: Orientation;
+  pages: Page[];
   columns: number;
   autoRows: boolean;
   zoom: number;

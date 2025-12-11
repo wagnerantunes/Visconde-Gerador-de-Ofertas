@@ -15,15 +15,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
 
     if (!isOpen) return null;
 
-    const generateBaseImage = async (type: 'png' | 'jpeg', scale = 4) => {
-        const element = document.getElementById('flyer-preview');
-        if (!element) throw new Error('Elemento não encontrado');
+    const generateBaseImage = async (elementId: string, type: 'png' | 'jpeg', scale = 3) => {
+        const element = document.getElementById(elementId);
+        if (!element) throw new Error(`Elemento ${elementId} não encontrado`);
 
         const options = {
             quality: 1.0,
             pixelRatio: scale,
             backgroundColor: '#ffffff',
-            style: { transform: 'scale(1)' }
+            style: { transform: 'scale(1)', margin: '0' } // Reseta transform e margin
         };
 
         if (type === 'png') return await toPng(element, options);
@@ -32,51 +32,77 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
 
     const handleExport = async (targetFormat: 'png' | 'jpg' | 'pdf') => {
         setIsExporting(true);
-        setProgress('Processando imagem Ultra HD...');
+        setProgress('Iniciando exportação...');
 
         try {
             const fileName = `ofertas-${state.seasonal.theme}-${new Date().toISOString().split('T')[0]}`;
-            // Usamos scale 3 para garantir boa performance e qualidade. 4 pode ser memory intensive em alguns browsers.
+            // Scale 3 para alta resolução
             const scale = 3;
 
-            if (targetFormat === 'pdf') {
-                // Para PDF, usamos JPEG para otimizar tamanho sem perder muita qualidade visual no papel
-                const imgData = await generateBaseImage('jpeg', scale);
+            // Fallback se não houver pages definido (migração)
+            const pages = state.pages || [{ id: 'page-1' }];
 
-                setProgress('Gerando PDF...');
+            if (targetFormat === 'pdf') {
+                // Configuração inicial do PDF baseada na orientação
                 const pdf = new jsPDF({
-                    orientation: 'portrait',
+                    orientation: state.orientation === 'landscape' ? 'landscape' : 'portrait',
                     unit: 'mm',
-                    format: 'a4'
+                    format: 'a4' // Padrão A4 para impressão
                 });
 
-                const imgProps = pdf.getImageProperties(imgData);
                 const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeightPage = pdf.internal.pageSize.getHeight();
 
-                // Ajustar altura proporcionalmente
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                for (let i = 0; i < pages.length; i++) {
+                    const page = pages[i];
+                    setProgress(`Processando Página ${i + 1}/${pages.length}...`);
 
-                // Se altura for maior que A4, talvez precise de nova página ou ajuste? 
-                // Assumindo que o flyer cabe numa folha ou será redimensionado pra caber na largura.
-                pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                    // ID do elemento da página específica
+                    const elementId = `flyer-page-${page.id}`;
+
+                    // Usamos JPEG para otimizar tamanho no PDF
+                    const imgData = await generateBaseImage(elementId, 'jpeg', scale);
+                    const imgProps = pdf.getImageProperties(imgData);
+
+                    // Calcular altura proporcional à largura da página A4
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                    if (i > 0) pdf.addPage();
+
+                    // Centralizar verticalmente se for menor que a página, ou alinhar ao topo
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
+                }
+
                 pdf.save(`${fileName}.pdf`);
 
             } else {
-                // Para PNG/JPG
+                // Exportação PNG/JPG (Sequencial)
                 const imgType = targetFormat === 'jpg' ? 'jpeg' : 'png';
-                const imgData = await generateBaseImage(imgType, scale);
 
-                setProgress('Finalizando download...');
-                const link = document.createElement('a');
-                link.download = `${fileName}.${targetFormat}`;
-                link.href = imgData;
-                link.click();
+                for (let i = 0; i < pages.length; i++) {
+                    const page = pages[i];
+                    setProgress(`Gerando Imagem ${i + 1}/${pages.length}...`);
+
+                    const elementId = `flyer-page-${page.id}`;
+                    const imgData = await generateBaseImage(elementId, imgType, scale);
+
+                    const link = document.createElement('a');
+                    const suffix = pages.length > 1 ? `-pg${i + 1}` : '';
+                    link.download = `${fileName}${suffix}.${targetFormat}`;
+                    link.href = imgData;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // Pequeno delay para evitar bloqueio de downloads múltiplos
+                    if (pages.length > 1) await new Promise(r => setTimeout(r, 800));
+                }
             }
 
             onClose();
         } catch (error) {
             console.error('Erro na exportação:', error);
-            alert('Erro ao exportar. Verifique se o navegador suporta Canvas de alta resolução.');
+            alert('Erro ao exportar. Tente recarregar a página e tentar novamente.');
         } finally {
             setIsExporting(false);
             setProgress('');
@@ -134,7 +160,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
                             </div>
                             <div className="text-left flex-1">
                                 <h3 className="font-bold text-gray-800 dark:text-white">Arquivo PDF</h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Formato ideal para impressão.</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Formato ideal para impressão (Múltiplas Páginas).</p>
                             </div>
                         </button>
 
@@ -156,7 +182,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
                 {/* Footer info */}
                 {!isExporting && (
                     <p className="text-[10px] text-center text-gray-400 mt-6 max-w-xs mx-auto">
-                        O sistema gera imagens em resolução aumentada (3x) para garantir que textos e preços fiquem nítidos.
+                        O sistema gera imagens separadas (se houver múltiplas páginas) ou um único PDF multipágina.
                     </p>
                 )}
             </div>
