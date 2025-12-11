@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { AppState, Product } from '../types';
 import { MOCK_IMAGES } from '../constants';
 import { SEASONAL_THEMES } from '../seasonalThemes';
-import { parseProductList, imageToBase64 } from '../utils';
+import { parseProductList, imageToBase64, findProductImage } from '../utils';
 import { ProductList } from './ProductList';
 
 interface ControlsProps {
@@ -47,7 +47,7 @@ export const Controls: React.FC<ControlsProps> = ({
       unit: newProduct.unit || 'KG',
       isHighlight: !!newProduct.isHighlight,
       details: newProduct.details || '',
-      image: newProduct.image || MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)]
+      image: newProduct.image || findProductImage(newProduct.name || '')
     });
 
     setNewProduct({
@@ -71,7 +71,7 @@ export const Controls: React.FC<ControlsProps> = ({
         unit: p.unit,
         isHighlight: false,
         details: '',
-        image: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)]
+        image: findProductImage(p.name)
       });
     });
 

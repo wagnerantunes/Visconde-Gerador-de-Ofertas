@@ -1,8 +1,37 @@
 import { AppState } from './types';
+import { MOCK_IMAGES } from './constants';
+
+const PRODUCT_IMAGE_MAP: Record<string, string> = {
+    'picanha': '/produtos/Picanha.png',
+    'chorizo': '/produtos/BifeChorizo.png',
+    'bife de chorizo': '/produtos/BifeChorizo.png',
+    'coxa': '/produtos/CoxaComSobrecoxa.png',
+    'sobrecoxa': '/produtos/CoxaComSobrecoxa.png',
+    'acem': '/produtos/AcemPicado.png',
+    'acém': '/produtos/AcemPicado.png',
+    'linguiça': '/produtos/LinguicaToscana.png',
+    'linguica': '/produtos/LinguicaToscana.png',
+    'toscana': '/produtos/LinguicaToscana.png'
+};
+
+export const findProductImage = (productName: string): string => {
+    const normalizedName = productName.toLowerCase();
+
+    for (const [key, path] of Object.entries(PRODUCT_IMAGE_MAP)) {
+        if (normalizedName.includes(key)) {
+            return path;
+        }
+    }
+
+    // Fallback to random mock image
+    return MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)];
+};
 
 const STORAGE_KEY = 'visconde-flyer-state';
 
 export const saveToLocalStorage = (state: AppState): void => {
+    // ...
+
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
