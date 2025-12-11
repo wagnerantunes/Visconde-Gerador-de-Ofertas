@@ -7,8 +7,21 @@ interface FlyerPreviewProps {
 }
 
 export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
-  const width = 1080;
-  const height = state.format === 'portrait' ? 1440 : 1920;
+  /* Dimensões em px (aproximadamente 150 DPI para visualização web/export) */
+  const SIZES: Record<string, { w: number; h: number }> = {
+    a4: { w: 1240, h: 1754 },
+    a3: { w: 1754, h: 2480 },
+    letter: { w: 1275, h: 1650 },
+    story: { w: 1080, h: 1920 },
+    feed: { w: 1080, h: 1080 },
+  };
+
+  const baseSize = SIZES[state.paperSize] || SIZES.a4;
+  const isLandscape = state.orientation === 'landscape';
+
+  // Se for landscape, invertemos (exceto se for feed/quadrado, tanto faz)
+  const width = isLandscape ? baseSize.h : baseSize.w;
+  const height = isLandscape ? baseSize.w : baseSize.h;
 
   const scale = (state.zoom / 100);
 
@@ -26,68 +39,75 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
       }}
     >
       {/* Header */}
-      <header
-        className="relative h-48 w-full flex items-center justify-between px-10 z-10 shadow-lg"
-        style={{
-          background: `linear-gradient(to bottom, ${seasonal.primaryColor}, ${seasonal.primaryColor}dd)`,
-          clipPath: 'ellipse(130% 100% at 50% 0%)'
-        }}
-      >
-        <div className="flex flex-col items-start transform -rotate-2">
-          <h1
-            className="font-display text-6xl drop-shadow-[0_4px_0_rgba(0,0,0,0.5)] leading-none uppercase tracking-wide"
-            style={{
-              color: seasonal.secondaryColor,
-              fontFamily: state.fonts.headerTitle.family,
-              fontSize: `${3.75 * state.fonts.headerTitle.scale}rem`
-            }}
-          >
-            {seasonal.title}
-          </h1>
-          <h2
-            className="font-display text-4xl text-white drop-shadow-md leading-none uppercase"
-            style={{
-              fontFamily: state.fonts.headerSubtitle.family,
-              fontSize: `${2.25 * state.fonts.headerSubtitle.scale}rem`
-            }}
-          >
-            {seasonal.subtitle}
-          </h2>
+      {/* Header Condicional */}
+      {header.customImage ? (
+        <div className="w-full relative z-10 shadow-lg">
+          <img src={header.customImage} alt="Cabeçalho" className="w-full h-auto object-cover block" />
         </div>
-
-        {/* Logo or Icon */}
-        {header.showLogo && header.logoUrl ? (
-          <div className="bg-white rounded-full p-4 shadow-xl border-[6px] absolute left-1/2 transform -translate-x-1/2 top-8" style={{ borderColor: seasonal.secondaryColor }}>
-            <img src={header.logoUrl} alt="Logo" className="w-16 h-16 object-contain" />
-          </div>
-        ) : (
-          <div
-            className="bg-white rounded-full p-4 shadow-xl border-[6px] absolute left-1/2 transform -translate-x-1/2 top-8"
-            style={{ borderColor: seasonal.secondaryColor }}
-          >
-            <span
-              className="material-icons-round text-7xl"
-              style={{ color: seasonal.primaryColor }}
+      ) : (
+        <header
+          className="relative h-48 w-full flex items-center justify-between px-10 z-10 shadow-lg"
+          style={{
+            background: `linear-gradient(to bottom, ${seasonal.primaryColor}, ${seasonal.primaryColor}dd)`,
+            clipPath: 'ellipse(130% 100% at 50% 0%)'
+          }}
+        >
+          <div className="flex flex-col items-start transform -rotate-2">
+            <h1
+              className="font-display text-6xl drop-shadow-[0_4px_0_rgba(0,0,0,0.5)] leading-none uppercase tracking-wide"
+              style={{
+                color: seasonal.secondaryColor,
+                fontFamily: state.fonts.headerTitle.family,
+                fontSize: `${3.75 * state.fonts.headerTitle.scale}rem`
+              }}
             >
-              {seasonal.icon}
+              {seasonal.title}
+            </h1>
+            <h2
+              className="font-display text-4xl text-white drop-shadow-md leading-none uppercase"
+              style={{
+                fontFamily: state.fonts.headerSubtitle.family,
+                fontSize: `${2.25 * state.fonts.headerSubtitle.scale}rem`
+              }}
+            >
+              {seasonal.subtitle}
+            </h2>
+          </div>
+
+          {/* Logo or Icon */}
+          {header.showLogo && header.logoUrl ? (
+            <div className="bg-white rounded-full p-4 shadow-xl border-[6px] absolute left-1/2 transform -translate-x-1/2 top-8" style={{ borderColor: seasonal.secondaryColor }}>
+              <img src={header.logoUrl} alt="Logo" className="w-16 h-16 object-contain" />
+            </div>
+          ) : (
+            <div
+              className="bg-white rounded-full p-4 shadow-xl border-[6px] absolute left-1/2 transform -translate-x-1/2 top-8"
+              style={{ borderColor: seasonal.secondaryColor }}
+            >
+              <span
+                className="material-icons-round text-7xl"
+                style={{ color: seasonal.primaryColor }}
+              >
+                {seasonal.icon}
+              </span>
+            </div>
+          )}
+
+          <div className="flex flex-col items-end text-white">
+            <span className="text-sm uppercase tracking-widest opacity-80 font-bold">{header.title}</span>
+            <span className="font-black text-4xl uppercase tracking-tighter">{header.subtitle}</span>
+            <span
+              className="text-sm font-bold px-3 py-1 rounded-full mt-1 uppercase"
+              style={{
+                backgroundColor: seasonal.secondaryColor,
+                color: seasonal.primaryColor
+              }}
+            >
+              {header.storeName}
             </span>
           </div>
-        )}
-
-        <div className="flex flex-col items-end text-white">
-          <span className="text-sm uppercase tracking-widest opacity-80 font-bold">{header.title}</span>
-          <span className="font-black text-4xl uppercase tracking-tighter">{header.subtitle}</span>
-          <span
-            className="text-sm font-bold px-3 py-1 rounded-full mt-1 uppercase"
-            style={{
-              backgroundColor: seasonal.secondaryColor,
-              color: seasonal.primaryColor
-            }}
-          >
-            {header.storeName}
-          </span>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Date Strip */}
       <div
@@ -126,45 +146,52 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
       </div>
 
       {/* Footer */}
-      <footer
-        className="text-white p-6 flex items-center justify-between z-10 relative shadow-[0_-5px_15px_rgba(0,0,0,0.2)]"
-        style={{ backgroundColor: seasonal.primaryColor }}
-      >
-        <div
-          className="absolute -top-4 left-0 w-full h-4"
-          style={{
-            backgroundColor: seasonal.primaryColor,
-            clipPath: 'polygon(0% 100%, 100% 100%, 100% 0%, 0% 100%)'
-          }}
-        />
-
-        <div className="flex flex-col space-y-1">
-          {footer.addresses.map((addr, idx) => (
-            <div key={idx} className="flex items-center gap-2 text-sm">
-              <span className="material-icons-round text-base">{idx === 0 ? 'location_on' : 'store'}</span>
-              <span className="font-medium">{addr}</span>
-            </div>
-          ))}
+      {/* Footer Condicional */}
+      {footer.customImage ? (
+        <div className="w-full relative shadow-[0_-5px_15px_rgba(0,0,0,0.2)] z-10 mt-auto">
+          <img src={footer.customImage} alt="Rodapé" className="w-full h-auto object-cover block" />
         </div>
+      ) : (
+        <footer
+          className="text-white p-6 flex items-center justify-between z-10 relative shadow-[0_-5px_15px_rgba(0,0,0,0.2)]"
+          style={{ backgroundColor: seasonal.primaryColor }}
+        >
+          <div
+            className="absolute -top-4 left-0 w-full h-4"
+            style={{
+              backgroundColor: seasonal.primaryColor,
+              clipPath: 'polygon(0% 100%, 100% 100%, 100% 0%, 0% 100%)'
+            }}
+          />
 
-        <div className="flex flex-col items-end">
-          <div className="flex items-center gap-2 text-lg font-bold mb-1">
-            <span
-              className="material-icons-round text-xl"
-              style={{ color: seasonal.secondaryColor }}
-            >
-              whatsapp
-            </span>
-            <span>{footer.phone}</span>
+          <div className="flex flex-col space-y-1">
+            {footer.addresses.map((addr, idx) => (
+              <div key={idx} className="flex items-center gap-2 text-sm">
+                <span className="material-icons-round text-base">{idx === 0 ? 'location_on' : 'store'}</span>
+                <span className="font-medium">{addr}</span>
+              </div>
+            ))}
           </div>
-          {footer.showSocial && (
-            <div className="flex gap-2 mt-1 opacity-80">
-              <span className="material-icons-round">facebook</span>
-              <span className="material-icons-round">camera_alt</span>
+
+          <div className="flex flex-col items-end">
+            <div className="flex items-center gap-2 text-lg font-bold mb-1">
+              <span
+                className="material-icons-round text-xl"
+                style={{ color: seasonal.secondaryColor }}
+              >
+                whatsapp
+              </span>
+              <span>{footer.phone}</span>
             </div>
-          )}
-        </div>
-      </footer>
+            {footer.showSocial && (
+              <div className="flex gap-2 mt-1 opacity-80">
+                <span className="material-icons-round">facebook</span>
+                <span className="material-icons-round">camera_alt</span>
+              </div>
+            )}
+          </div>
+        </footer>
+      )}
     </div>
   );
 };

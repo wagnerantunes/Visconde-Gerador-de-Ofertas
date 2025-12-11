@@ -11,7 +11,8 @@ export interface Product {
   imageOffsetY?: number;
 }
 
-export type FormatType = 'portrait' | 'story';
+export type PaperSize = 'story' | 'feed' | 'a4' | 'a3' | 'letter';
+export type Orientation = 'portrait' | 'landscape';
 
 export type SeasonalTheme = 'semana' | 'fds' | 'carnaval' | 'pascoa' | 'junino' | 'natal' | 'ano-novo' | 'black-friday';
 
@@ -31,6 +32,7 @@ export interface HeaderConfig {
   logoUrl: string;
   title: string;
   subtitle: string;
+  customImage?: string;
 }
 
 export interface FooterConfig {
@@ -42,6 +44,7 @@ export interface FooterConfig {
     instagram?: string;
     whatsapp?: string;
   };
+  customImage?: string;
 }
 
 export interface TextStyle {
@@ -65,7 +68,8 @@ export interface LayoutConfig {
 }
 
 export interface AppState {
-  format: FormatType;
+  paperSize: PaperSize;
+  orientation: Orientation;
   columns: number;
   autoRows: boolean;
   zoom: number;

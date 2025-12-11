@@ -107,6 +107,26 @@ export const Controls: React.FC<ControlsProps> = ({
     }
   };
 
+  const handleHeaderImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await imageToBase64(file);
+        onUpdateState({ header: { ...state.header, customImage: base64 } });
+      } catch (error) { console.error('Erro header img', error); }
+    }
+  };
+
+  const handleFooterImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await imageToBase64(file);
+        onUpdateState({ footer: { ...state.footer, customImage: base64 } });
+      } catch (error) { console.error('Erro footer img', error); }
+    }
+  };
+
   const tabs = [
     { id: 'tema' as TabType, label: 'Tema', icon: 'palette' },
     { id: 'design' as TabType, label: 'Design', icon: 'brush' },
@@ -178,30 +198,42 @@ export const Controls: React.FC<ControlsProps> = ({
 
             <section>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
-                <span className="material-icons-round text-lg">aspect_ratio</span> Formato
+                <span className="material-icons-round text-lg">aspect_ratio</span> Formato do Papel
               </h3>
-              <div className="grid grid-cols-2 gap-3">
+
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {['a4', 'a3', 'letter', 'story', 'feed'].map(size => (
+                  <button
+                    key={size}
+                    onClick={() => onUpdateState({ paperSize: size as any })}
+                    className={`py-2 px-1 rounded-lg text-xs font-bold uppercase border-2 transition-all ${state.paperSize === size
+                      ? 'border-primary bg-red-50 text-primary'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                      }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex bg-gray-100 p-1 rounded-lg">
                 <button
-                  onClick={() => onUpdateState({ format: 'portrait' })}
-                  className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all ${state.format === 'portrait'
-                    ? 'border-primary bg-red-50 dark:bg-red-900/20'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-primary'
+                  onClick={() => onUpdateState({ orientation: 'portrait' })}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-xs font-bold transition-all ${state.orientation === 'portrait'
+                    ? 'bg-white text-primary shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
                     }`}
                 >
-                  <span className={`material-icons-round mb-1 ${state.format === 'portrait' ? 'text-primary' : 'text-gray-400'}`}>crop_portrait</span>
-                  <span className={`font-bold text-sm ${state.format === 'portrait' ? 'text-primary' : 'text-gray-600 dark:text-gray-300'}`}>Portrait</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">1080x1440</span>
+                  <span className="material-icons-round text-base">crop_portrait</span> Retrato
                 </button>
                 <button
-                  onClick={() => onUpdateState({ format: 'story' })}
-                  className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all ${state.format === 'story'
-                    ? 'border-primary bg-red-50 dark:bg-red-900/20'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-primary'
+                  onClick={() => onUpdateState({ orientation: 'landscape' })}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-xs font-bold transition-all ${state.orientation === 'landscape'
+                    ? 'bg-white text-primary shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
                     }`}
                 >
-                  <span className={`material-icons-round mb-1 ${state.format === 'story' ? 'text-primary' : 'text-gray-400'}`}>smartphone</span>
-                  <span className={`font-bold text-sm ${state.format === 'story' ? 'text-primary' : 'text-gray-600 dark:text-gray-300'}`}>Story</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">1080x1920</span>
+                  <span className="material-icons-round text-base">crop_landscape</span> Paisagem
                 </button>
               </div>
             </section>
@@ -295,8 +327,8 @@ export const Controls: React.FC<ControlsProps> = ({
                     <button
                       onClick={() => onUpdateState({ layout: { ...state.layout, cardStyle: 'classic' } })}
                       className={`flex-1 py-2 rounded-lg text-sm border-2 transition-all ${(state.layout?.cardStyle || 'classic') === 'classic'
-                          ? 'border-primary bg-primary/5 text-primary font-bold'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300 dark:hover:border-gray-600'
+                        ? 'border-primary bg-primary/5 text-primary font-bold'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300 dark:hover:border-gray-600'
                         }`}
                     >
                       Clássico
@@ -304,8 +336,8 @@ export const Controls: React.FC<ControlsProps> = ({
                     <button
                       onClick={() => onUpdateState({ layout: { ...state.layout, cardStyle: 'compact' } })}
                       className={`flex-1 py-2 rounded-lg text-sm border-2 transition-all ${state.layout?.cardStyle === 'compact'
-                          ? 'border-primary bg-primary/5 text-primary font-bold'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300 dark:hover:border-gray-600'
+                        ? 'border-primary bg-primary/5 text-primary font-bold'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300 dark:hover:border-gray-600'
                         }`}
                     >
                       Compacto
@@ -490,6 +522,30 @@ export const Controls: React.FC<ControlsProps> = ({
                 </div>
               </div>
             </section>
+
+            <section className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                Arte Pronta (Opcional)
+              </h3>
+              <p className="text-xs text-gray-400 mb-2">Substitui todo o texto acima por uma imagem.</p>
+
+              {state.header.customImage ? (
+                <div className="relative group">
+                  <img src={state.header.customImage} className="w-full h-24 object-cover rounded-lg border border-gray-200" />
+                  <button
+                    onClick={() => onUpdateState({ header: { ...state.header, customImage: undefined } })}
+                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full text-xs shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <span className="material-icons-round text-sm">close</span>
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <span className="text-xs text-gray-500 font-medium">Upload Cabeçalho Completo</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleHeaderImageUpload} />
+                </label>
+              )}
+            </section>
           </>
         )}
 
@@ -540,6 +596,28 @@ export const Controls: React.FC<ControlsProps> = ({
                 ))}
               </div>
             </section>
+
+            <section className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                Arte Pronta (Rodapé)
+              </h3>
+              {state.footer.customImage ? (
+                <div className="relative group">
+                  <img src={state.footer.customImage} className="w-full h-16 object-cover rounded-lg border border-gray-200" />
+                  <button
+                    onClick={() => onUpdateState({ footer: { ...state.footer, customImage: undefined } })}
+                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full text-xs shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <span className="material-icons-round text-sm">close</span>
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <span className="text-xs text-gray-500 font-medium">Upload Rodapé Completo</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleFooterImageUpload} />
+                </label>
+              )}
+            </section>
           </>
         )}
 
@@ -569,6 +647,20 @@ export const Controls: React.FC<ControlsProps> = ({
                 <span className="material-icons-round text-base">format_list_bulleted</span> Lista ({state.products.length})
               </button>
             </div>
+
+            {state.products.length > 0 && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Tem certeza que deseja apagar todos os produtos?')) {
+                    onUpdateState({ products: [] });
+                  }
+                }}
+                className="w-full mb-4 py-2 px-3 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <span className="material-icons-round text-sm">delete_sweep</span>
+                Apagar Todos os Produtos ({state.products.length})
+              </button>
+            )}
 
             {productTab === 'single' && (
               <div className="space-y-4">

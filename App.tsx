@@ -12,7 +12,8 @@ import { saveToLocalStorage, loadFromLocalStorage } from './utils';
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>({
-    format: 'portrait',
+    paperSize: 'a4',
+    orientation: 'portrait',
     columns: 3,
     autoRows: true,
     zoom: 50,
@@ -72,9 +73,23 @@ const App: React.FC = () => {
           cardStyle: 'classic'
         };
 
+        // Migration: Handle legacy format
+        let paperSize = saved.paperSize || 'a4';
+        let orientation = saved.orientation || 'portrait';
+        // @ts-ignore
+        if (saved.format) {
+          // @ts-ignore
+          if (saved.format === 'story') {
+            paperSize = 'story';
+            orientation = 'portrait';
+          }
+        }
+
         return {
           ...prev,
           ...saved,
+          paperSize,
+          orientation,
           fonts: mergedFonts,
           layout: mergedLayout
         };
