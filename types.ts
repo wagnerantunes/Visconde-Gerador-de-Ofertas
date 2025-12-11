@@ -55,6 +55,12 @@ export interface FontConfig {
   unit: TextStyle;
 }
 
+export interface LayoutConfig {
+  cardHeight: number;
+  rowGap: number;
+  cardStyle: 'classic' | 'compact';
+}
+
 export interface AppState {
   format: FormatType;
   columns: number;
@@ -66,4 +72,5 @@ export interface AppState {
   header: HeaderConfig;
   footer: FooterConfig;
   fonts: FontConfig;
+  layout: LayoutConfig;
 }

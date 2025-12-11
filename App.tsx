@@ -27,6 +27,11 @@ const App: React.FC = () => {
       productDetails: { family: 'Roboto', scale: 1 },
       price: { family: 'Lilita One', scale: 1 },
       unit: { family: 'Roboto', scale: 1 }
+    },
+    layout: {
+      cardHeight: 280,
+      rowGap: 16,
+      cardStyle: 'classic'
     }
   });
 
@@ -59,10 +64,17 @@ const App: React.FC = () => {
           }
         }
 
+        const mergedLayout = saved.layout || {
+          cardHeight: 280,
+          rowGap: 16,
+          cardStyle: 'classic'
+        };
+
         return {
           ...prev,
           ...saved,
-          fonts: mergedFonts
+          fonts: mergedFonts,
+          layout: mergedLayout
         };
       });
     }

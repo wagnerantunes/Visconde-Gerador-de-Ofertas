@@ -244,6 +244,77 @@ export const Controls: React.FC<ControlsProps> = ({
         {/* DESIGN TAB */}
         {activeTab === 'design' && (
           <>
+            <section className="mb-8 border-b border-gray-200 dark:border-gray-700 pb-8">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">
+                Layout do Flyer
+              </h3>
+
+              <div className="space-y-6">
+                {/* Card Height */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Altura do Produto</span>
+                    <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-gray-500">{state.layout?.cardHeight || 280}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="150"
+                    max="400"
+                    step="10"
+                    value={state.layout?.cardHeight || 280}
+                    onChange={(e) => onUpdateState({
+                      layout: { ...(state.layout || { rowGap: 16, cardStyle: 'classic' }), cardHeight: parseInt(e.target.value) }
+                    })}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary dark:bg-gray-700"
+                  />
+                </div>
+
+                {/* Row Gap */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Espaçamento Vertical</span>
+                    <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-gray-500">{state.layout?.rowGap || 16}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="4"
+                    value={state.layout?.rowGap !== undefined ? state.layout.rowGap : 16}
+                    onChange={(e) => onUpdateState({
+                      layout: { ...(state.layout || { cardHeight: 280, cardStyle: 'classic' }), rowGap: parseInt(e.target.value) }
+                    })}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary dark:bg-gray-700"
+                  />
+                </div>
+
+                {/* Card Style Select */}
+                <div>
+                  <label className="text-sm font-medium block mb-2 text-gray-700 dark:text-gray-300">Estilo do Cartão</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onUpdateState({ layout: { ...state.layout, cardStyle: 'classic' } })}
+                      className={`flex-1 py-2 rounded-lg text-sm border-2 transition-all ${(state.layout?.cardStyle || 'classic') === 'classic'
+                          ? 'border-primary bg-primary/5 text-primary font-bold'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                    >
+                      Clássico
+                    </button>
+                    <button
+                      onClick={() => onUpdateState({ layout: { ...state.layout, cardStyle: 'compact' } })}
+                      className={`flex-1 py-2 rounded-lg text-sm border-2 transition-all ${state.layout?.cardStyle === 'compact'
+                          ? 'border-primary bg-primary/5 text-primary font-bold'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                    >
+                      Compacto
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <section>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">
                 Personalizar Tipografia

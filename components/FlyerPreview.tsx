@@ -105,9 +105,10 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
       {/* Content Area */}
       <div className="flex-1 p-6 bg-cubes bg-fixed">
         <div
-          className="grid gap-4 auto-rows-min"
+          className="grid gap-x-4 auto-rows-min"
           style={{
-            gridTemplateColumns: `repeat(${state.columns}, minmax(0, 1fr))`
+            gridTemplateColumns: `repeat(${state.columns}, minmax(0, 1fr))`,
+            rowGap: `${state.layout?.rowGap ?? 16}px`
           }}
         >
           {state.products.map((product) => (
@@ -117,6 +118,7 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
               primaryColor={seasonal.primaryColor}
               secondaryColor={seasonal.secondaryColor}
               fonts={state.fonts}
+              layout={state.layout}
               className={product.isHighlight ? 'col-span-2' : 'col-span-1'}
             />
           ))}

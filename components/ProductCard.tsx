@@ -1,5 +1,5 @@
 import React from 'react';
-import { Product, FontConfig } from '../types';
+import { Product, FontConfig, LayoutConfig } from '../types';
 
 interface ProductCardProps {
   product: Product;
@@ -7,6 +7,7 @@ interface ProductCardProps {
   secondaryColor: string;
   className?: string;
   fonts: FontConfig;
+  layout?: LayoutConfig;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -14,13 +15,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   primaryColor,
   secondaryColor,
   className = '',
-  fonts
+  fonts,
+  layout
 }) => {
+  const height = layout?.cardHeight ? `${layout.cardHeight}px` : '18rem';
+  const isCompact = layout?.cardStyle === 'compact';
   const isHighlight = product.isHighlight;
 
   if (isHighlight) {
     return (
-      <div className={`bg-white rounded-2xl shadow-lg p-0 relative flex items-stretch border border-gray-100 overflow-hidden group ${className} h-72`}>
+      <div
+        className={`bg-white rounded-2xl shadow-lg p-0 relative flex items-stretch border border-gray-100 overflow-hidden group ${className}`}
+        style={{ height }}
+      >
         {/* Imagem - 70% do espaço horizontal */}
         <div className="flex-shrink-0 w-[70%] flex items-center justify-center bg-gradient-to-br from-gray-50 to-white p-4">
           <img
@@ -86,7 +93,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   }
 
   return (
-    <div className={`bg-white rounded-2xl shadow-md relative flex flex-col border border-gray-100 group ${className} hover:shadow-xl transition-shadow duration-300 overflow-hidden h-72`}>
+    <div
+      className={`bg-white rounded-2xl shadow-md relative flex flex-col border border-gray-100 group ${className} hover:shadow-xl transition-shadow duration-300 overflow-hidden`}
+      style={{ height }}
+    >
       {/* Price Badge - Canto superior direito, fora da foto */}
       <div
         className="absolute top-2 right-2 px-3 py-1.5 rounded-xl shadow-lg z-20 group-hover:scale-105 transition-transform"
@@ -113,17 +123,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </div>
 
-      {/* Imagem do produto - 70% do espaço vertical */}
-      <div className="w-full h-[70%] flex items-center justify-center bg-gradient-to-br from-gray-50 to-white p-4">
+      {/* Imagem do produto - Flex Grow para ocupar espaço disponível */}
+      <div className="w-full flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white p-4 min-h-0 relative">
         <img
           src={product.image}
           alt={product.name}
           className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-300"
         />
+        {/* Compact Mode Overlay Gradient */}
+        {isCompact && (
+          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+        )}
       </div>
 
-      {/* Informações - 30% do espaço vertical */}
-      <div className="h-[30%] flex flex-col justify-center items-center px-3 py-2 bg-white">
+      {/* Informações - Auto Height */}
+      <div className={`flex flex-col justify-center items-center bg-white shrink-0 z-10 ${isCompact ? 'px-2 pb-2' : 'px-3 py-2'}`}>
         <h3
           className="font-bold text-gray-800 text-center text-base leading-tight uppercase w-full line-clamp-2"
           style={{
