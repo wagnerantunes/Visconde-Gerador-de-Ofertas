@@ -22,8 +22,8 @@ export const findProductImage = (productName: string): string => {
         }
     }
 
-    // Fallback to random mock image
-    return MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)];
+    // Placeholder SVG quando imagem não é encontrada
+    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNDUlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjxzdmcgeD0iNzUiIHk9IjYwIiB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzljYTNhZiI+PHBhdGggZD0iTTIxIDMuMDFINGMtMS4xIDAtMiAuOS0yIDJWMTljMCAxLjEuOSAyIDIgMmgxN2MxLjEgMCAyLS45IDItMlY1LjAxYzAtMS4xLS45LTItMi0yem0wIDE1Ljk5SDRWNy4wMWgxN3YxMS45OXpNOSAxMC41YzAtLjgzLjY3LTEuNSAxLjUtMS41czEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNS0xLjUtLjY3LTEuNS0xLjV6TTUgMTZsMyAzLjk5IDMtMy45OSA0IDUuMDFINXoiLz48L3N2Zz48L3RleHQ+PHRleHQgeD0iNTAlIiB5PSI2NSUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2VtIG7Do28gZW5jb250cmFkYTwvdGV4dD48L3N2Zz4=';
 };
 
 const STORAGE_KEY = 'visconde-flyer-state';

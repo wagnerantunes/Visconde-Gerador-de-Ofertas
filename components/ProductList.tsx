@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Product } from '../types';
+import { ImageGalleryModal } from './ImageGalleryModal';
+import { imageToBase64 } from '../utils';
 
 interface ProductListProps {
     products: Product[];
@@ -18,6 +20,8 @@ interface SortableProductItemProps {
 const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUpdate, onRemove }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState(product);
+    const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+    const imageInputRef = useRef<HTMLInputElement>(null);
 
     const {
         attributes,
@@ -42,6 +46,18 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
     const handleCancel = () => {
         setEditData(product);
         setIsEditing(false);
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            try {
+                const base64 = await imageToBase64(file);
+                setEditData({ ...editData, image: base64 });
+            } catch (error) {
+                console.error('Erro ao carregar imagem:', error);
+            }
+        }
     };
 
     if (isEditing) {
@@ -79,6 +95,44 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                             <option>100g</option>
                         </select>
                     </div>
+
+                    {/* Trocar Imagem */}
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 block">Trocar Imagem</label>
+                        <div className="flex items-center gap-3">
+                            <img
+                                src={editData.image}
+                                alt="Preview"
+                                className="w-20 h-20 object-contain rounded border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800"
+                            />
+                            <div className="flex-1 flex flex-col gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsGalleryOpen(true)}
+                                    className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-bold rounded transition-colors flex items-center justify-center gap-1"
+                                >
+                                    <span className="material-icons-round text-sm">photo_library</span>
+                                    Escolher da Galeria
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => imageInputRef.current?.click()}
+                                    className="w-full py-2 px-3 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 text-xs font-bold rounded transition-colors flex items-center justify-center gap-1"
+                                >
+                                    <span className="material-icons-round text-sm">upload</span>
+                                    Upload Nova Imagem
+                                </button>
+                                <input
+                                    ref={imageInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    className="hidden"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Controles Avançados do Produto */}
                     <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-700">
                         {/* Tamanho e Destaque */}
@@ -101,8 +155,8 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                                         key={cols}
                                         onClick={() => setEditData({ ...editData, cols })}
                                         className={`flex-1 py-1 text-[10px] font-bold border rounded transition-colors ${(editData.cols || (editData.isHighlight ? 2 : 1)) === cols
-                                                ? 'bg-gray-800 text-white border-gray-800 dark:bg-white dark:text-gray-900'
-                                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                                            ? 'bg-gray-800 text-white border-gray-800 dark:bg-white dark:text-gray-900'
+                                            : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
                                             }`}
                                     >
                                         {cols}x Largura
@@ -153,6 +207,16 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                         </button>
                     </div>
                 </div>
+
+                {/* Image Gallery Modal */}
+                <ImageGalleryModal
+                    isOpen={isGalleryOpen}
+                    onClose={() => setIsGalleryOpen(false)}
+                    onSelect={(img) => {
+                        setEditData({ ...editData, image: img });
+                        setIsGalleryOpen(false);
+                    }}
+                />
             </div>
         );
     }
