@@ -25,9 +25,11 @@ export const Controls: React.FC<ControlsProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('tema');
   const [activeFontTarget, setActiveFontTarget] = useState<keyof typeof state.fonts>('price');
-  const [productTab, setProductTab] = useState<'single' | 'batch' | 'list'>('single');
+  const [productTab, setProductTab] = useState<'single' | 'batch' | 'list' | 'import'>('single');
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [batchText, setBatchText] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
@@ -124,6 +126,63 @@ export const Controls: React.FC<ControlsProps> = ({
         const base64 = await imageToBase64(file);
         onUpdateState({ footer: { ...state.footer, customImage: base64 } });
       } catch (error) { console.error('Erro footer img', error); }
+    }
+  };
+
+  const handleSyncGoogleSheets = async () => {
+    setIsSyncing(true);
+    setSyncMessage(null);
+
+    try {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbzy6IUgIPzIYtz8DmOGHqNm4kque5kxGNz4daboARq4qfznaKTC5r1Q2vzX_-CyLsKK/exec');
+
+      if (!response.ok) {
+        throw new Error('Erro ao conectar com o Google Sheets');
+      }
+
+      const data = await response.json();
+
+      if (!data.sucesso || !data.ofertas) {
+        throw new Error('Formato de dados inválido');
+      }
+
+      // Mapear os dados do Google Sheets para o formato Product
+      const newProducts: Product[] = data.ofertas.map((oferta: any) => ({
+        id: Date.now().toString() + Math.random(),
+        name: oferta.produto || '',
+        price: oferta.preco || 0,
+        unit: oferta.unidade || oferta.obs || 'KG',
+        isHighlight: false,
+        details: oferta.categoria || '',
+        image: findProductImage(oferta.produto || ''),
+        pageId: 'auto'
+      }));
+
+      // Adicionar os produtos
+      onUpdateState({ products: [...state.products, ...newProducts] });
+
+      setSyncMessage({
+        type: 'success',
+        text: `${newProducts.length} produtos importados com sucesso!`
+      });
+
+      // Mudar para a aba de lista após sincronizar
+      setProductTab('list');
+
+      // Limpar mensagem após 5 segundos
+      setTimeout(() => setSyncMessage(null), 5000);
+
+    } catch (error) {
+      console.error('Erro ao sincronizar:', error);
+      setSyncMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Erro ao sincronizar com Google Sheets'
+      });
+
+      // Limpar mensagem de erro após 5 segundos
+      setTimeout(() => setSyncMessage(null), 5000);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -675,6 +734,13 @@ export const Controls: React.FC<ControlsProps> = ({
                 <span className="material-icons-round text-base">list_alt</span> Colar Lista
               </button>
               <button
+                onClick={() => setProductTab('import')}
+                className={`flex-1 text-center py-2.5 text-xs font-bold uppercase tracking-wide border-b-2 transition-all flex items-center justify-center gap-1 ${productTab === 'import' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
+                  }`}
+              >
+                <span className="material-icons-round text-base">cloud_sync</span> Importar
+              </button>
+              <button
                 onClick={() => setProductTab('list')}
                 className={`flex-1 text-center py-2.5 text-xs font-bold uppercase tracking-wide border-b-2 transition-all flex items-center justify-center gap-1 ${productTab === 'list' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
                   }`}
@@ -682,6 +748,40 @@ export const Controls: React.FC<ControlsProps> = ({
                 <span className="material-icons-round text-base">format_list_bulleted</span> Lista ({state.products.length})
               </button>
             </div>
+
+            {/* Google Sheets Sync Button */}
+            <button
+              onClick={handleSyncGoogleSheets}
+              disabled={isSyncing}
+              className="w-full mb-4 py-3 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2"
+            >
+              {isSyncing ? (
+                <>
+                  <span className="material-icons-round animate-spin">sync</span>
+                  Sincronizando...
+                </>
+              ) : (
+                <>
+                  <span className="material-icons-round">cloud_sync</span>
+                  Sincronizar com Google Sheets
+                </>
+              )}
+            </button>
+
+            {/* Sync Feedback Message */}
+            {syncMessage && (
+              <div className={`mb-4 p-3 rounded-lg border ${syncMessage.type === 'success'
+                ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300'
+                : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+                }`}>
+                <p className="text-xs font-bold flex items-center gap-2">
+                  <span className="material-icons-round text-sm">
+                    {syncMessage.type === 'success' ? 'check_circle' : 'error'}
+                  </span>
+                  {syncMessage.text}
+                </p>
+              </div>
+            )}
 
             {state.products.length > 0 && (
               <button
@@ -809,6 +909,79 @@ export const Controls: React.FC<ControlsProps> = ({
                 >
                   <span className="material-icons-round">playlist_add</span> Processar Lista
                 </button>
+              </div>
+            )}
+
+            {productTab === 'import' && (
+              <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className="material-icons-round text-blue-600 dark:text-blue-400 text-2xl">cloud</span>
+                    <div>
+                      <h4 className="text-sm font-bold text-blue-900 dark:text-blue-100 mb-1">
+                        Importar do Google Sheets
+                      </h4>
+                      <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                        Sincronize produtos diretamente da sua planilha do Google Sheets.
+                        Os produtos serão adicionados à lista existente.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 mt-3 border border-blue-100 dark:border-blue-900">
+                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      📋 Estrutura esperada da planilha:
+                    </p>
+                    <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1 ml-4">
+                      <li>• <strong>produto</strong>: Nome do produto</li>
+                      <li>• <strong>preco</strong>: Preço (número)</li>
+                      <li>• <strong>unidade/obs</strong>: KG, Unid., etc.</li>
+                      <li>• <strong>categoria</strong>: Categoria (opcional)</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Sync Feedback Message */}
+                {syncMessage && (
+                  <div className={`p-3 rounded-lg border ${syncMessage.type === 'success'
+                      ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300'
+                      : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+                    }`}>
+                    <p className="text-xs font-bold flex items-center gap-2">
+                      <span className="material-icons-round text-sm">
+                        {syncMessage.type === 'success' ? 'check_circle' : 'error'}
+                      </span>
+                      {syncMessage.text}
+                    </p>
+                  </div>
+                )}
+
+                {/* Google Sheets Sync Button */}
+                <button
+                  onClick={handleSyncGoogleSheets}
+                  disabled={isSyncing}
+                  className="w-full py-4 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2"
+                >
+                  {isSyncing ? (
+                    <>
+                      <span className="material-icons-round animate-spin">sync</span>
+                      Sincronizando...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-icons-round">cloud_download</span>
+                      Importar Produtos da Planilha
+                    </>
+                  )}
+                </button>
+
+                {state.products.length > 0 && (
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 text-center">
+                      Você já tem {state.products.length} produto(s) na lista
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
