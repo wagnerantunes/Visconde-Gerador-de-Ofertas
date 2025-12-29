@@ -66,11 +66,11 @@ export const getAvailablePageHeight = (
     const isLandscape = orientation === 'landscape';
     const height = isLandscape ? baseSize.w : baseSize.h;
 
-    // Estimativas de altura (Sincronizar com FlyerPreview e ExportModal)
-    const headerHeight = headerCustom ? 300 : 240;
-    const footerHeight = footerCustom ? 300 : 200;
+    // Estimativas de altura ajustadas para maximizar espaço disponível
+    const headerHeight = headerCustom ? 280 : 220;  // Reduzido de 300/240
+    const footerHeight = footerCustom ? 280 : 180;  // Reduzido de 300/200
     const verticalPadding = 48;
-    const safeMargin = 20;
+    const safeMargin = 5;  // Reduzido de 20 para 5 - quebra mais próxima do rodapé
 
     return height - headerHeight - footerHeight - verticalPadding - safeMargin;
 };
