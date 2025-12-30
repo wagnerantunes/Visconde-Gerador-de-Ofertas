@@ -66,11 +66,11 @@ export const getAvailablePageHeight = (
     const isLandscape = orientation === 'landscape';
     const height = isLandscape ? baseSize.w : baseSize.h;
 
-    // Estimativas de altura otimizadas ao máximo
-    const headerHeight = headerCustom ? 260 : 200;  // Reduzido ainda mais
-    const footerHeight = footerCustom ? 260 : 160;  // Reduzido ainda mais
-    const verticalPadding = 48;
-    const safeMargin = 0;  // Removido completamente - quebra exatamente no limite
+    // Estimativas MUITO reduzidas para maximizar espaço
+    const headerHeight = headerCustom ? 240 : 180;  // Reduzido drasticamente
+    const footerHeight = footerCustom ? 240 : 140;  // Reduzido drasticamente
+    const verticalPadding = 40;  // Reduzido de 48
+    const safeMargin = 0;  // Zero - quebra no limite exato
 
     return height - headerHeight - footerHeight - verticalPadding - safeMargin;
 };
