@@ -7,6 +7,9 @@ import { FlyerPreview } from './components/FlyerPreview';
 import { HistoryControls } from './components/HistoryControls';
 import { ThemeToggle } from './components/ThemeToggle';
 import { NotificationProvider } from './components/NotificationProvider';
+import { TemplateManager } from './components/TemplateManager';
+import { ShortcutsHelp } from './components/ShortcutsHelp';
+import { StatusBar } from './components/StatusBar';
 import { AppState, Product } from './types';
 import { INITIAL_PRODUCTS } from './constants';
 import { SEASONAL_THEMES, DEFAULT_HEADER, DEFAULT_FOOTER } from './seasonalThemes';
@@ -22,6 +25,10 @@ const App: React.FC = () => {
     return saved === 'true';
   });
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date>();
 
   const initialAppState: AppState = useMemo(() => {
     const saved = loadFromLocalStorage();
@@ -63,7 +70,13 @@ const App: React.FC = () => {
   // Auto-save with debounce
   const debouncedState = useDebounce(state, 1000);
   useEffect(() => {
-    saveToLocalStorage(debouncedState);
+    setIsSaving(true);
+    const timer = setTimeout(() => {
+      saveToLocalStorage(debouncedState);
+      setIsSaving(false);
+      setLastSaved(new Date());
+    }, 100);
+    return () => clearTimeout(timer);
   }, [debouncedState]);
 
   // Dark mode effect
@@ -87,6 +100,8 @@ const App: React.FC = () => {
       }, description: 'Salvar'
     },
     { key: 'e', ctrl: true, handler: () => setIsExportModalOpen(true), description: 'Exportar' },
+    { key: 't', ctrl: true, handler: () => setIsTemplateManagerOpen(true), description: 'Templates' },
+    { key: '/', ctrl: true, handler: () => setIsShortcutsHelpOpen(true), description: 'Ajuda' },
   ]);
 
   const sensors = useSensors(
@@ -150,6 +165,20 @@ const App: React.FC = () => {
             </button>
           </div>
           <button
+            onClick={() => setIsTemplateManagerOpen(true)}
+            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            title="Templates (Ctrl+T)"
+          >
+            <span className="material-icons-round text-gray-700 dark:text-gray-300">bookmark</span>
+          </button>
+          <button
+            onClick={() => setIsShortcutsHelpOpen(true)}
+            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            title="Atalhos (Ctrl+?)"
+          >
+            <span className="material-icons-round text-gray-700 dark:text-gray-300">keyboard</span>
+          </button>
+          <button
             onClick={() => setIsExportModalOpen(true)}
             className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-700 transition-colors font-bold text-sm"
           >
@@ -186,6 +215,24 @@ const App: React.FC = () => {
           isOpen={isExportModalOpen}
           onClose={() => setIsExportModalOpen(false)}
           state={state}
+        />
+
+        <TemplateManager
+          isOpen={isTemplateManagerOpen}
+          onClose={() => setIsTemplateManagerOpen(false)}
+          onLoadTemplate={(newState) => setAppState(newState)}
+          currentState={state}
+        />
+
+        <ShortcutsHelp
+          isOpen={isShortcutsHelpOpen}
+          onClose={() => setIsShortcutsHelpOpen(false)}
+        />
+
+        <StatusBar
+          productCount={state.products.length}
+          isSaving={isSaving}
+          lastSaved={lastSaved}
         />
       </div>
     </NotificationProvider>
