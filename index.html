@@ -1,63 +1,65 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gerador de Ofertas - Visconde Carnes</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Roboto:wght@400;500;700;900&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/icon?family=Material+Icons+Round"
-      rel="stylesheet"
-    />
-    <script>
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              primary: "#c62828", // Deep Butcher Red
-              secondary: "#ffca28", // Price Yellow
-              "background-light": "#f3f4f6",
-              "background-dark": "#111827",
-              "paper-light": "#ffffff",
-              "paper-dark": "#1f2937",
-            },
-            fontFamily: {
-              display: ["Lilita One", "cursive"],
-              body: ["Roboto", "sans-serif"],
-            },
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerador de Ofertas - Visconde Carnes</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Fjalla+One&family=Lilita+One&family=Lobster&family=Montserrat:wght@400;700;900&family=Oswald:wght@400;700&family=Roboto:wght@400;500;700;900&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#c62828", // Deep Butcher Red
+            secondary: "#ffca28", // Price Yellow
+            "background-light": "#f3f4f6",
+            "background-dark": "#111827",
+            "paper-light": "#ffffff",
+            "paper-dark": "#1f2937",
+          },
+          fontFamily: {
+            display: ["Lilita One", "cursive"],
+            body: ["Roboto", "sans-serif"],
           },
         },
-      };
-    </script>
-    <style>
-      .price-tag {
-        border-radius: 50% 50% 50% 0 / 15% 15% 15% 40%;
-        box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.3);
-      }
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 4px;
-      }
-      .dark ::-webkit-scrollbar-thumb {
-        background: #4b5563;
-      }
-      /* Custom pattern for the flyer background */
-      .bg-cubes {
-        background-image: url('https://www.transparenttextures.com/patterns/cubes.png');
-      }
-    </style>
+      },
+    };
+  </script>
+  <style>
+    .price-tag {
+      border-radius: 50% 50% 50% 0 / 15% 15% 15% 40%;
+      box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+      background: #4b5563;
+    }
+
+    /* Custom pattern for the flyer background */
+    .bg-cubes {
+      background-image: url('https://www.transparenttextures.com/patterns/cubes.png');
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -67,10 +69,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 font-body">
-    <div id="root"></div>
+
+<body class="bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 font-body">
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

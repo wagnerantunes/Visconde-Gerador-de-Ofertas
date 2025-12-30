@@ -1,21 +1,91 @@
+export interface Page {
+  id: string;
+}
+
 export interface Product {
   id: string;
+  pageId?: string;
   name: string;
   details: string;
   price: number;
   unit: string;
   image: string;
   isHighlight: boolean;
+  cols?: number;
+  imageScale?: number;
+  imageOffsetY?: number;
 }
 
-export type FormatType = 'portrait' | 'story';
+export type PaperSize = 'story' | 'feed' | 'a4' | 'a3' | 'letter';
+export type Orientation = 'portrait' | 'landscape';
+
+export type SeasonalTheme = 'semana' | 'fds' | 'carnaval' | 'pascoa' | 'junino' | 'natal' | 'ano-novo' | 'black-friday';
+
+export interface SeasonalConfig {
+  theme: SeasonalTheme;
+  title: string;
+  subtitle: string;
+  primaryColor: string;
+  secondaryColor: string;
+  icon: string;
+  backgroundPattern?: string;
+}
+
+export interface HeaderConfig {
+  storeName: string;
+  showLogo: boolean;
+  logoUrl: string;
+  title: string;
+  subtitle: string;
+  customImage?: string;
+}
+
+export interface FooterConfig {
+  addresses: string[];
+  phone: string;
+  showSocial: boolean;
+  socialLinks: {
+    facebook?: string;
+    instagram?: string;
+    whatsapp?: string;
+  };
+  customImage?: string;
+}
+
+export interface TextStyle {
+  family: string;
+  scale: number;
+  color?: string;
+}
+
+export interface FontConfig {
+  storeName: TextStyle;
+  headerTitle: TextStyle;
+  headerSubtitle: TextStyle;
+  productName: TextStyle;
+  productDetails: TextStyle;
+  price: TextStyle;
+  unit: TextStyle;
+}
+
+export interface LayoutConfig {
+  cardHeight: number;
+  rowGap: number;
+  cardStyle: 'classic' | 'compact';
+}
 
 export interface AppState {
-  format: FormatType;
+  paperSize: PaperSize;
+  orientation: Orientation;
+  pages: Page[];
   columns: number;
   autoRows: boolean;
   zoom: number;
   products: Product[];
-  storeName: string;
   validUntil: string;
+  seasonal: SeasonalConfig;
+  header: HeaderConfig;
+  footer: FooterConfig;
+  fonts: FontConfig;
+  layout: LayoutConfig;
 }
