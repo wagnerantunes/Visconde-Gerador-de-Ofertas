@@ -35,10 +35,13 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
       !!header.customImage,
       !!footer.customImage
     );
-    const itemHeight = (layout.cardHeight || 280) + (layout.rowGap || 16);
+    // Valores padrão para layout
+    const cardHeight = layout?.cardHeight || 280;
+    const rowGap = layout?.rowGap || 16;
+    const itemHeight = cardHeight + rowGap;
 
     return paginateProducts(state.products, availableHeight, itemHeight, state.columns);
-  }, [state.products, state.paperSize, state.orientation, height, layout.cardHeight, layout.rowGap, state.columns, header.customImage, footer.customImage]);
+  }, [state.products, state.paperSize, state.orientation, height, layout?.cardHeight, layout?.rowGap, state.columns, header.customImage, footer.customImage]);
 
 
   return (
