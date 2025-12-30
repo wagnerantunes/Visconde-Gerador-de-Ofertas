@@ -39,13 +39,19 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
     };
 
     const handleSave = () => {
-        onUpdate(product.id, editData);
         setIsEditing(false);
     };
 
     const handleCancel = () => {
+        onUpdate(product.id, product); // Restaura valores originais
         setEditData(product);
         setIsEditing(false);
+    };
+
+    const handleChange = (updates: Partial<Product>) => {
+        const newData = { ...editData, ...updates };
+        setEditData(newData);
+        onUpdate(product.id, newData); // Atualiza em tempo real
     };
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,7 +59,7 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
         if (file) {
             try {
                 const base64 = await imageToBase64(file);
-                setEditData({ ...editData, image: base64 });
+                handleChange({ image: base64 });
             } catch (error) {
                 console.error('Erro ao carregar imagem:', error);
             }
@@ -71,7 +77,7 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                     <input
                         type="text"
                         value={editData.name}
-                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                        onChange={(e) => handleChange({ name: e.target.value })}
                         className="w-full text-sm rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2"
                         placeholder="Nome"
                     />
@@ -80,13 +86,13 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                             type="number"
                             step="0.01"
                             value={editData.price}
-                            onChange={(e) => setEditData({ ...editData, price: parseFloat(e.target.value) })}
+                            onChange={(e) => handleChange({ price: parseFloat(e.target.value) })}
                             className="w-full text-sm rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2"
                             placeholder="Preço"
                         />
                         <select
                             value={editData.unit}
-                            onChange={(e) => setEditData({ ...editData, unit: e.target.value })}
+                            onChange={(e) => handleChange({ unit: e.target.value })}
                             className="w-full text-sm rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2"
                         >
                             <option>KG</option>
@@ -143,7 +149,7 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                                     <input
                                         type="checkbox"
                                         checked={editData.isHighlight}
-                                        onChange={(e) => setEditData({ ...editData, isHighlight: e.target.checked })}
+                                        onChange={(e) => handleChange({ isHighlight: e.target.checked })}
                                         className="w-3 h-3 text-primary rounded"
                                     />
                                     <span className="text-[10px] text-primary font-bold">Cor Destaque</span>
@@ -153,7 +159,7 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                                 {[1, 2, 3].map(cols => (
                                     <button
                                         key={cols}
-                                        onClick={() => setEditData({ ...editData, cols })}
+                                        onClick={() => handleChange({ cols })}
                                         className={`flex-1 py-1 text-[10px] font-bold border rounded transition-colors ${(editData.cols || (editData.isHighlight ? 2 : 1)) === cols
                                             ? 'bg-gray-800 text-white border-gray-800 dark:bg-white dark:text-gray-900'
                                             : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
@@ -175,7 +181,7 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                                         type="range"
                                         min="0.5" max="2" step="0.1"
                                         value={editData.imageScale || 1}
-                                        onChange={(e) => setEditData({ ...editData, imageScale: parseFloat(e.target.value) })}
+                                        onChange={(e) => handleChange({ imageScale: parseFloat(e.target.value) })}
                                         className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-600"
                                     />
                                 </div>
@@ -185,7 +191,7 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                                         type="range"
                                         min="-50" max="50" step="5"
                                         value={editData.imageOffsetY || 0}
-                                        onChange={(e) => setEditData({ ...editData, imageOffsetY: parseInt(e.target.value) })}
+                                        onChange={(e) => handleChange({ imageOffsetY: parseInt(e.target.value) })}
                                         className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-600"
                                     />
                                 </div>
@@ -213,7 +219,7 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                     isOpen={isGalleryOpen}
                     onClose={() => setIsGalleryOpen(false)}
                     onSelect={(img) => {
-                        setEditData({ ...editData, image: img });
+                        handleChange({ image: img });
                         setIsGalleryOpen(false);
                     }}
                 />
