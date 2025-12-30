@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Controls } from './components/Controls';
@@ -64,12 +64,26 @@ const App: React.FC = () => {
 
   const {
     state,
-    setState: setAppState,
+    setState: pushAppState,
+    replaceState,
     undo,
     redo,
     canUndo,
     canRedo
   } = useHistory<AppState>(initialAppState);
+
+  const historyDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const setAppState = useCallback((update: AppState | ((prev: AppState) => AppState)) => {
+    // Immediate UI update without pushing to history
+    replaceState(update);
+
+    // Debounce pushing to history
+    if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current);
+    historyDebounceRef.current = setTimeout(() => {
+      pushAppState(update);
+    }, 500); // 500ms delay before creating a new history point
+  }, [replaceState, pushAppState]);
 
   // Auto-save with debounce
   const debouncedState = useDebounce(state, 1000);
@@ -125,25 +139,35 @@ const App: React.FC = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (active.id !== over?.id) {
-      const oldIndex = state.products.findIndex(p => p.id === active.id);
-      const newIndex = state.products.findIndex(p => p.id === over?.id);
-      const newProducts = arrayMove(state.products, oldIndex, newIndex);
-      setAppState({ ...state, products: newProducts });
+      setAppState(prev => {
+        const oldIndex = prev.products.findIndex(p => p.id === active.id);
+        const newIndex = prev.products.findIndex(p => p.id === over?.id);
+        const newProducts = arrayMove(prev.products, oldIndex, newIndex);
+        return { ...prev, products: newProducts };
+      });
     }
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
-    const newProducts = state.products.map(p => p.id === id ? { ...p, ...updates } : p);
-    setAppState({ ...state, products: newProducts });
+    setAppState(prev => ({
+      ...prev,
+      products: prev.products.map(p => p.id === id ? { ...p, ...updates } : p)
+    }));
   };
 
   const addProduct = (product: Product) => {
-    setAppState({ ...state, products: [...state.products, product] });
+    setAppState(prev => ({
+      ...prev,
+      products: [...prev.products, product]
+    }));
     toast.success('Produto adicionado!');
   };
 
   const removeProduct = (id: string) => {
-    setAppState({ ...state, products: state.products.filter(p => p.id !== id) });
+    setAppState(prev => ({
+      ...prev,
+      products: prev.products.filter(p => p.id !== id)
+    }));
     toast.error('Produto removido');
   };
 
@@ -205,10 +229,10 @@ const App: React.FC = () => {
           <div className="w-[450px] min-w-[450px] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 h-full overflow-y-auto shadow-xl z-20">
             <Controls
               state={state}
-              setState={setAppState}
-              updateProduct={updateProduct}
-              addProduct={addProduct}
-              removeProduct={removeProduct}
+              onUpdateState={(updates) => setAppState(prev => ({ ...prev, ...updates }))}
+              onUpdateProduct={updateProduct}
+              onAddProduct={addProduct}
+              onRemoveProduct={removeProduct}
             />
           </div>
 

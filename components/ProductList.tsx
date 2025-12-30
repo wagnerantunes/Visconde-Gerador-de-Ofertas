@@ -20,6 +20,7 @@ interface SortableProductItemProps {
 const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUpdate, onRemove }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState(product);
+    const [originalData, setOriginalData] = useState<Product | null>(null);
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,14 +39,24 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
         opacity: isDragging ? 0.5 : 1,
     };
 
+    const handleStartEdit = () => {
+        setOriginalData(product);
+        setEditData(product);
+        setIsEditing(true);
+    };
+
     const handleSave = () => {
         setIsEditing(false);
+        setOriginalData(null);
     };
 
     const handleCancel = () => {
-        onUpdate(product.id, product); // Restaura valores originais
-        setEditData(product);
+        if (originalData) {
+            onUpdate(product.id, originalData);
+            setEditData(originalData);
+        }
         setIsEditing(false);
+        setOriginalData(null);
     };
 
     const handleChange = (updates: Partial<Product>) => {
