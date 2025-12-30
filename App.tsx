@@ -1,30 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { toPng } from 'html-to-image';
 import { Controls } from './components/Controls';
 import { ExportModal } from './components/ExportModal';
 import { FlyerPreview } from './components/FlyerPreview';
+import { HistoryControls } from './components/HistoryControls';
+import { ThemeToggle } from './components/ThemeToggle';
+import { NotificationProvider } from './components/NotificationProvider';
 import { AppState, Product } from './types';
 import { INITIAL_PRODUCTS } from './constants';
 import { SEASONAL_THEMES, DEFAULT_HEADER, DEFAULT_FOOTER } from './seasonalThemes';
 import { saveToLocalStorage, loadFromLocalStorage } from './utils';
+import { useHistory } from './hooks/useHistory';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useDebounce } from './hooks/useDebounce';
+import toast from 'react-hot-toast';
 
 const App: React.FC = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('visconde-dark-mode');
+    return saved === 'true';
+  });
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  const [state, setState] = useState<AppState>(() => {
+  const initialAppState: AppState = useMemo(() => {
     const saved = loadFromLocalStorage();
-    if (saved) {
-      // Migration Logic
-      return { ...saved };
-    }
+    if (saved) return { ...saved };
     return {
       paperSize: 'a4',
       orientation: 'portrait',
-      pages: [{ id: 'page-1' }], // Legacy support
+      pages: [{ id: 'page-1' }],
       layout: { cardHeight: 280, rowGap: 16, cardStyle: 'classic' },
       fonts: {
         headerTitle: { family: 'Bebas Neue', scale: 1 },
@@ -36,7 +41,7 @@ const App: React.FC = () => {
         unit: { family: 'Roboto', scale: 1 }
       },
       columns: 3,
-      autoRows: true, // Now implies auto-pagination
+      autoRows: true,
       zoom: 50,
       products: INITIAL_PRODUCTS.map(p => ({ ...p, pageId: 'auto' })),
       validUntil: '10/12/2025',
@@ -44,221 +49,146 @@ const App: React.FC = () => {
       header: DEFAULT_HEADER,
       footer: DEFAULT_FOOTER
     };
-  });
-
-  // Load fonts migration... (Simplified for brevity, assuming utils handles it or preserving previous logic if needed. 
-  // Ideally should persist full load logic. I will trust write_to_file to replace file completely, so I must include full logic.)
-  // Wait, I should not overwrite migration logic with simplified version if I don't have it all.
-  // I will use `loadFromLocalStorage` result but I need to apply the migration transformations I did in `useEffect` previously.
-  // The previous useEffect logic for migration was modifying STATE after mount. 
-  // Better to keep the useEffect approach or move it to initializer.
-
-  // Re-implementing the migration useEffect to be safe
-  useEffect(() => {
-    const saved = loadFromLocalStorage();
-    if (saved) {
-      setState(prev => {
-        let mergedFonts = prev.fonts;
-        // ... (Migration logic same as before)
-        if (saved.fonts) {
-          // ... (I will copy the logic from previous view)
-          if (typeof saved.fonts.price === 'string') {
-            const migrated: any = {};
-            Object.keys(saved.fonts).forEach(key => {
-              // @ts-ignore
-              migrated[key] = { family: saved.fonts[key], scale: 1 };
-            });
-            mergedFonts = { ...mergedFonts, ...migrated };
-          } else {
-            const fixedFonts = { ...saved.fonts };
-            Object.keys(fixedFonts).forEach(key => {
-              // @ts-ignore
-              if (fixedFonts[key].scale === undefined) fixedFonts[key].scale = 1;
-            });
-            mergedFonts = { ...mergedFonts, ...fixedFonts };
-          }
-        }
-
-        // Products pageId migration
-        let products = saved.products || [];
-        if (products.length > 0 && !products[0].pageId) {
-          products = products.map(p => ({ ...p, pageId: 'auto' }));
-        }
-
-        const mergedLayout = saved.layout || {
-          cardHeight: 280,
-          rowGap: 16,
-          cardStyle: 'classic'
-        };
-
-        // Format migration
-        let paperSize = saved.paperSize || 'a4';
-        let orientation = saved.orientation || 'portrait';
-        // @ts-ignore
-        if (saved.format === 'story') {
-          paperSize = 'story';
-          orientation = 'portrait';
-        }
-
-        return {
-          ...prev,
-          ...saved,
-          paperSize,
-          orientation,
-          products,
-          fonts: mergedFonts,
-          layout: mergedLayout
-        };
-      });
-    }
   }, []);
 
-  useEffect(() => saveToLocalStorage(state), [state]);
+  const {
+    state,
+    setState: setAppState,
+    undo,
+    redo,
+    canUndo,
+    canRedo
+  } = useHistory<AppState>(initialAppState);
 
+  // Auto-save with debounce
+  const debouncedState = useDebounce(state, 1000);
   useEffect(() => {
-    if (isDarkMode) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
+    saveToLocalStorage(debouncedState);
+  }, [debouncedState]);
+
+  // Dark mode effect
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('visconde-dark-mode', isDarkMode.toString());
   }, [isDarkMode]);
 
+  // Keyboard Shortcuts
+  useKeyboardShortcuts([
+    { key: 'z', ctrl: true, handler: undo, description: 'Desfazer' },
+    { key: 'y', ctrl: true, handler: redo, description: 'Refazer' },
+    {
+      key: 's', ctrl: true, handler: () => {
+        saveToLocalStorage(state);
+        toast.success('Alterações salvas!');
+      }, description: 'Salvar'
+    },
+    { key: 'e', ctrl: true, handler: () => setIsExportModalOpen(true), description: 'Exportar' },
+  ]);
+
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const updateState = (updates: Partial<AppState>) => setState(prev => ({ ...prev, ...updates }));
-
-  const addProduct = (product: Product) => {
-    setState(prev => ({
-      ...prev,
-      products: [...prev.products, { ...product, pageId: 'auto' }]
-    }));
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      const oldIndex = state.products.findIndex(p => p.id === active.id);
+      const newIndex = state.products.findIndex(p => p.id === over?.id);
+      const newProducts = arrayMove(state.products, oldIndex, newIndex);
+      setAppState({ ...state, products: newProducts });
+    }
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
-    setState(prev => ({
-      ...prev,
-      products: prev.products.map(p => p.id === id ? { ...p, ...updates } : p)
-    }));
+    const newProducts = state.products.map(p => p.id === id ? { ...p, ...updates } : p);
+    setAppState({ ...state, products: newProducts });
+  };
+
+  const addProduct = (product: Product) => {
+    setAppState({ ...state, products: [...state.products, product] });
+    toast.success('Produto adicionado!');
   };
 
   const removeProduct = (id: string) => {
-    setState(prev => ({
-      ...prev,
-      products: prev.products.filter(p => p.id !== id)
-    }));
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setState(prev => {
-        const oldIndex = prev.products.findIndex(p => p.id === active.id);
-        const newIndex = prev.products.findIndex(p => p.id === over.id);
-        return {
-          ...prev,
-          products: arrayMove(prev.products, oldIndex, newIndex)
-        };
-      });
-    }
-  };
-
-  const handleZoom = (direction: 'in' | 'out') => {
-    setState(prev => ({
-      ...prev,
-      zoom: Math.max(25, Math.min(150, direction === 'in' ? prev.zoom + 10 : prev.zoom - 10))
-    }));
-  };
-
-  const handleShare = async () => {
-    setIsDownloading(true);
-    try {
-      // Tenta capturar a primeira página
-      const element = document.getElementById('flyer-page-0');
-      if (!element) return;
-
-      const dataUrl = await toPng(element, { quality: 1.0, pixelRatio: 3, backgroundColor: '#ffffff' });
-      const blob = await (await fetch(dataUrl)).blob();
-
-      try {
-        // @ts-ignore
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'share.png', { type: 'image/png' })] })) {
-          await navigator.share({
-            // @ts-ignore
-            files: [new File([blob], `flyer-${state.seasonal.theme}.png`, { type: 'image/png' })],
-            title: 'Minhas Ofertas',
-            text: 'Confira nossas ofertas especiais!'
-          });
-        } else {
-          const link = document.createElement('a');
-          link.download = `flyer-${state.seasonal.theme}-${Date.now()}.png`;
-          link.href = dataUrl;
-          link.click();
-        }
-      } catch (e) {
-        console.log('Share cancelado', e);
-      }
-    } catch (error) {
-      console.error('Erro ao compartilhar:', error);
-      alert('Erro ao processar imagem.');
-    } finally {
-      setIsDownloading(false);
-    }
+    setAppState({ ...state, products: state.products.filter(p => p.id !== id) });
+    toast.error('Produto removido');
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 font-body selection:bg-primary selection:text-white transition-colors duration-300">
-        <Controls
-          state={state}
-          onUpdateState={updateState}
-          onAddProduct={addProduct}
-          onUpdateProduct={updateProduct}
-          onRemoveProduct={removeProduct}
-        />
-
-        <main className="flex-1 bg-gray-200 dark:bg-black relative flex flex-col items-center justify-center p-8 overflow-hidden">
-          {/* Toolbar */}
-          <div className="absolute top-6 flex gap-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-full shadow-lg z-20 border border-gray-100 dark:border-gray-700">
-            <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 transition-colors">
-              <span className="material-icons-round">{isDarkMode ? 'light_mode' : 'dark_mode'}</span>
-            </button>
-            <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 self-center mx-1"></div>
-            <button onClick={() => handleZoom('out')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 transition-colors">
+    <NotificationProvider>
+      <div className="min-h-screen bg-background-light dark:bg-background-dark font-body transition-colors duration-300">
+        {/* Top bar with tools */}
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3">
+          <HistoryControls
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={undo}
+            onRedo={redo}
+          />
+          <ThemeToggle
+            isDark={isDarkMode}
+            onToggle={() => setIsDarkMode(!isDarkMode)}
+          />
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg shadow-md px-3 py-1 border border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setAppState({ ...state, zoom: Math.max(25, state.zoom - 10) })}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-400"
+            >
               <span className="material-icons-round">remove</span>
             </button>
-            <span className="self-center text-sm font-medium min-w-[3rem] text-center">{state.zoom}%</span>
-            <button onClick={() => handleZoom('in')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 transition-colors">
+            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-10 text-center">{state.zoom}%</span>
+            <button
+              onClick={() => setAppState({ ...state, zoom: Math.min(150, state.zoom + 10) })}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-400"
+            >
               <span className="material-icons-round">add</span>
             </button>
-            <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 self-center mx-1"></div>
-            <button
-              className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2 ${isDownloading ? 'text-gray-400' : 'text-primary'}`}
-              onClick={() => setIsExportModalOpen(true)}
-              disabled={isDownloading}
-            >
-              <span className="material-icons-round text-xl">{isDownloading ? 'hourglass_empty' : 'download'}</span>
-              <span className="text-sm font-bold hidden sm:inline">Baixar</span>
-            </button>
-            <button
-              className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors ${isDownloading ? 'text-gray-400' : 'text-green-600'}`}
-              onClick={handleShare}
-              disabled={isDownloading}
-            >
-              <span className="material-icons-round">share</span>
-            </button>
+          </div>
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-700 transition-colors font-bold text-sm"
+          >
+            <span className="material-icons-round">download</span>
+            EXPORTAR
+          </button>
+        </div>
+
+        <div className="flex h-screen overflow-hidden pt-20">
+          {/* Controls - Fixed Left */}
+          <div className="w-[450px] min-w-[450px] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 h-full overflow-y-auto shadow-xl z-20">
+            <Controls
+              state={state}
+              setState={setAppState}
+              updateProduct={updateProduct}
+              addProduct={addProduct}
+              removeProduct={removeProduct}
+            />
           </div>
 
-          <div className="relative w-full h-full flex items-center justify-center overflow-auto p-10 bg-gray-200 dark:bg-black">
-            <FlyerPreview state={state} />
+          {/* Preview Area */}
+          <div className="flex-1 bg-gray-100 dark:bg-gray-950 overflow-auto flex flex-col items-center p-8 scroll-smooth relative">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <FlyerPreview state={state} />
+            </DndContext>
           </div>
+        </div>
 
-          <p className="text-gray-500 dark:text-gray-400 text-xs mt-6 absolute bottom-4">
-            Pré-visualização do arquivo final • Paginação Automática
-          </p>
-        </main>
+        <ExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          state={state}
+        />
       </div>
-      <ExportModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} state={state} />
-    </DndContext>
+    </NotificationProvider>
   );
 };
 
