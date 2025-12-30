@@ -10,6 +10,7 @@ import { NotificationProvider } from './components/NotificationProvider';
 import { TemplateManager } from './components/TemplateManager';
 import { ShortcutsHelp } from './components/ShortcutsHelp';
 import { StatusBar } from './components/StatusBar';
+import { PreviewControls } from './components/PreviewControls';
 import { AppState, Product } from './types';
 import { INITIAL_PRODUCTS } from './constants';
 import { SEASONAL_THEMES, DEFAULT_HEADER, DEFAULT_FOOTER } from './seasonalThemes';
@@ -29,6 +30,9 @@ const App: React.FC = () => {
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date>();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
+  const [showRulers, setShowRulers] = useState(false);
 
   const initialAppState: AppState = useMemo(() => {
     const saved = loadFromLocalStorage();
@@ -89,6 +93,13 @@ const App: React.FC = () => {
     localStorage.setItem('visconde-dark-mode', isDarkMode.toString());
   }, [isDarkMode]);
 
+  // Quick Export Function
+  const handleQuickExport = async () => {
+    toast.loading('Exportando...');
+    // Trigger export with last used format (default PNG)
+    setIsExportModalOpen(true);
+  };
+
   // Keyboard Shortcuts
   useKeyboardShortcuts([
     { key: 'z', ctrl: true, handler: undo, description: 'Desfazer' },
@@ -100,8 +111,10 @@ const App: React.FC = () => {
       }, description: 'Salvar'
     },
     { key: 'e', ctrl: true, handler: () => setIsExportModalOpen(true), description: 'Exportar' },
+    { key: 'e', ctrl: true, shift: true, handler: handleQuickExport, description: 'Exportação Rápida' },
     { key: 't', ctrl: true, handler: () => setIsTemplateManagerOpen(true), description: 'Templates' },
     { key: '/', ctrl: true, handler: () => setIsShortcutsHelpOpen(true), description: 'Ajuda' },
+    { key: 'f', ctrl: true, handler: () => setIsFullscreen(!isFullscreen), description: 'Tela Cheia' },
   ]);
 
   const sensors = useSensors(
@@ -200,7 +213,25 @@ const App: React.FC = () => {
           </div>
 
           {/* Preview Area */}
-          <div className="flex-1 bg-gray-100 dark:bg-gray-950 overflow-auto flex flex-col items-center p-8 scroll-smooth relative">
+          <div className={`flex-1 bg-gray-100 dark:bg-gray-950 overflow-auto flex flex-col items-center p-8 scroll-smooth relative ${isFullscreen ? 'fixed inset-0 z-50' : ''
+            }`}>
+            <PreviewControls
+              onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+              onToggleGrid={() => setShowGrid(!showGrid)}
+              onToggleRulers={() => setShowRulers(!showRulers)}
+              isFullscreen={isFullscreen}
+              showGrid={showGrid}
+              showRulers={showRulers}
+            />
+
+            {/* Grid Overlay */}
+            {showGrid && (
+              <div className="absolute inset-0 pointer-events-none" style={{
+                backgroundImage: 'linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)',
+                backgroundSize: '20px 20px'
+              }} />
+            )}
+
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
