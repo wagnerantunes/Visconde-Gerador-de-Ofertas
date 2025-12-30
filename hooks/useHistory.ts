@@ -15,41 +15,48 @@ export function useHistory<T>(initialState: T, maxHistory = 50): UseHistoryRetur
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const setState = useCallback((newState: T) => {
-        setHistory(prev => {
-            // Remove future states if we're not at the end
-            const newHistory = prev.slice(0, currentIndex + 1);
+        setCurrentIndex(prevIndex => {
+            setHistory(prevHistory => {
+                // Remove future states if we're not at the end
+                const newHistory = prevHistory.slice(0, prevIndex + 1);
 
-            // Add new state
-            newHistory.push(newState);
+                // Add new state
+                newHistory.push(newState);
 
-            // Limit history size
-            if (newHistory.length > maxHistory) {
-                newHistory.shift();
-                setCurrentIndex(prev => prev - 1);
-            } else {
-                setCurrentIndex(prev => prev + 1);
-            }
+                // Limit history size
+                if (newHistory.length > maxHistory) {
+                    newHistory.shift();
+                    return newHistory;
+                }
 
-            return newHistory;
+                return newHistory;
+            });
+
+            // Update index
+            return Math.min(prevIndex + 1, maxHistory - 1);
         });
-    }, [currentIndex, maxHistory]);
+    }, [maxHistory]);
 
     const undo = useCallback(() => {
-        if (currentIndex > 0) {
-            setCurrentIndex(prev => prev - 1);
-        }
-    }, [currentIndex]);
+        setCurrentIndex(prev => Math.max(0, prev - 1));
+    }, []);
 
     const redo = useCallback(() => {
-        if (currentIndex < history.length - 1) {
-            setCurrentIndex(prev => prev + 1);
-        }
-    }, [currentIndex, history.length]);
+        setHistory(prevHistory => {
+            setCurrentIndex(prev => Math.min(prevHistory.length - 1, prev + 1));
+            return prevHistory;
+        });
+    }, []);
 
     const clear = useCallback(() => {
-        setHistory([history[currentIndex]]);
-        setCurrentIndex(0);
-    }, [history, currentIndex]);
+        setHistory(prevHistory => {
+            setCurrentIndex(prevIndex => {
+                setHistory([prevHistory[prevIndex]]);
+                return 0;
+            });
+            return prevHistory;
+        });
+    }, []);
 
     return {
         state: history[currentIndex],
