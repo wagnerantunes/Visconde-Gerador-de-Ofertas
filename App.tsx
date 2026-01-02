@@ -16,14 +16,18 @@ import { TemplateGallery } from './components/TemplateGallery';
 import { AppState, Product } from './types';
 import { INITIAL_PRODUCTS } from './constants';
 import { SEASONAL_THEMES, DEFAULT_HEADER, DEFAULT_FOOTER } from './seasonalThemes';
-import { saveToLocalStorage, loadFromLocalStorage } from './utils';
+import { loadFromLocalStorage } from './utils';
+import { saveLayout } from './services/layoutService';
 import { useHistory } from './hooks/useHistory';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDebounce } from './hooks/useDebounce';
 import { useToast } from './contexts/ToastContext';
 import { ShortcutBadge } from './components/ShortcutBadge';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthModal } from './components/auth/AuthModal';
+import { LoadLayoutModal } from './components/LoadLayoutModal';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('visconde-dark-mode');
     return saved === 'true';
@@ -33,6 +37,7 @@ const App: React.FC = () => {
   const [isTemplateGalleryOpen, setIsTemplateGalleryOpen] = useState(false);
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
   const [isAIStudioOpen, setIsAIStudioOpen] = useState(false);
+  const [isLoadLayoutModalOpen, setIsLoadLayoutModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date>();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -43,6 +48,8 @@ const App: React.FC = () => {
     return saved === 'true';
   });
   const { showToast } = useToast();
+  const { user, signOut } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   /* State Initialization with safe defaults */
   const defaultState: AppState = useMemo(() => ({
@@ -113,7 +120,8 @@ const App: React.FC = () => {
   useEffect(() => {
     setIsSaving(true);
     const timer = setTimeout(() => {
-      saveToLocalStorage(debouncedState);
+      // NOTE: Auto-save currently only saves to local storage to avoid spamming the DB
+      saveLayout(debouncedState); // layoutService saves to local by default
       setIsSaving(false);
       setLastSaved(new Date());
     }, 100);
@@ -143,7 +151,6 @@ const App: React.FC = () => {
   // Quick Export Function
   const handleQuickExport = async () => {
     showToast('info', 'Abrindo exportação...');
-    // Trigger export with last used format (default PNG)
     setIsExportModalOpen(true);
   };
 
@@ -152,10 +159,28 @@ const App: React.FC = () => {
     { key: 'z', ctrl: true, handler: undo, description: 'Desfazer' },
     { key: 'y', ctrl: true, handler: redo, description: 'Refazer' },
     {
-      key: 's', ctrl: true, handler: () => {
-        saveToLocalStorage(state);
-        showToast('success', 'Alterações salvas!');
+      key: 's', ctrl: true, handler: async () => {
+        setIsSaving(true);
+        const result = await saveLayout(state, user?.id);
+        setIsSaving(false);
+        setLastSaved(new Date());
+
+        if (result.success) {
+          showToast('success', user ? 'Salvo na nuvem!' : 'Salvo localmente!');
+        } else {
+          showToast('error', 'Erro ao salvar.');
+        }
       }, description: 'Salvar'
+    },
+    {
+      key: 'o', ctrl: true, handler: () => {
+        if (!user) {
+          showToast('info', 'Login necessário para abrir layouts.');
+          setIsAuthModalOpen(true);
+        } else {
+          setIsLoadLayoutModalOpen(true);
+        }
+      }, description: 'Abrir Layout'
     },
     { key: 'e', ctrl: true, handler: () => setIsExportModalOpen(true), description: 'Exportar' },
     { key: 'e', ctrl: true, shift: true, handler: handleQuickExport, description: 'Exportação Rápida' },
@@ -216,99 +241,120 @@ const App: React.FC = () => {
 
   return (
     <NotificationProvider>
-      <div className="min-h-screen bg-background-light dark:bg-background-dark font-body transition-colors duration-300">
-        {/* Top bar with tools - Modern GLASS design */}
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 glass px-4 py-2 rounded-2xl">
+      <div className="min-h-screen font-body transition-colors duration-300 bg-background-light dark:bg-background-dark selection:bg-primary/20 selection:text-primary">
+        {/* Noise overlay handled in index.css body */}
+
+        {/* Top bar - Clean Minimal Toolbar */}
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 px-2 py-1.5 rounded-xl bg-white/90 dark:bg-gray-900/90 shadow-lg shadow-black/5 dark:shadow-black/30 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-xl">
           <HistoryControls
             canUndo={canUndo}
             canRedo={canRedo}
             onUndo={undo}
             onRedo={redo}
           />
-          <div className="w-px h-6 bg-black/5 dark:bg-white/5 mx-1" />
-          <ThemeToggle
-            isDark={isDarkMode}
-            onToggle={() => setIsDarkMode(!isDarkMode)}
-          />
+
           <button
-            onClick={() => setIsCompactMode(!isCompactMode)}
-            className={`p-2 rounded-xl border transition-all active:scale-90 ${isCompactMode
-              ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
-              : 'bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/5 text-gray-600 dark:text-gray-400 hover:bg-black/10 dark:hover:bg-white/10'
-              }`}
-            title={isCompactMode ? 'Modo Normal' : 'Modo Compacto'}
+            onClick={() => {
+              if (!user) {
+                showToast('info', 'Faça login para abrir layouts da nuvem.');
+                setIsAuthModalOpen(true);
+                return;
+              }
+              setIsLoadLayoutModalOpen(true);
+            }}
+            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Meus Layouts"
           >
-            <span className="material-icons-round text-lg">
-              {isCompactMode ? 'unfold_more' : 'unfold_less'}
-            </span>
+            <span className="material-icons-round text-[18px]">folder_open</span>
           </button>
-          <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-xl p-1 px-2 border border-black/5 dark:border-white/5">
-            <button
-              onClick={() => setAppState({ ...state, zoom: Math.max(25, state.zoom - 10) })}
-              className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg text-gray-500 transition-colors"
-            >
-              <span className="material-icons-round text-lg">remove</span>
-            </button>
-            <span className="text-[10px] font-black text-gray-700 dark:text-gray-300 w-10 text-center tracking-tighter">{state.zoom}%</span>
-            <button
-              onClick={() => setAppState({ ...state, zoom: Math.min(150, state.zoom + 10) })}
-              className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg text-gray-500 transition-colors"
-            >
-              <span className="material-icons-round text-lg">add</span>
-            </button>
-          </div>
-          <div className="w-px h-6 bg-black/5 dark:bg-white/5 mx-1" />
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsTemplateManagerOpen(true)}
-              className="group relative p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-gray-600 dark:text-gray-400 transition-all active:scale-95"
-              title="Templates (Ctrl+T)"
-            >
-              <span className="material-icons-round text-xl">bookmark</span>
-              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <ShortcutBadge keys={['Ctrl', 'T']} />
-              </div>
-            </button>
-            <button
-              onClick={() => setIsTemplateGalleryOpen(true)}
-              className="group relative p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-gray-600 dark:text-gray-400 transition-all active:scale-95"
-              title="Galeria de Templates (Ctrl+G)"
-            >
-              <span className="material-icons-round text-xl">auto_awesome</span>
-              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <ShortcutBadge keys={['Ctrl', 'G']} />
-              </div>
-            </button>
-            <button
-              onClick={() => setIsShortcutsHelpOpen(true)}
-              className="group relative p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-gray-600 dark:text-gray-400 transition-all active:scale-95"
-              title="Atalhos (Ctrl+?)"
-            >
-              <span className="material-icons-round text-xl">keyboard</span>
-              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <ShortcutBadge keys={['Ctrl', '?']} />
-              </div>
-            </button>
-            <button
-              onClick={() => setIsAIStudioOpen(true)}
-              className="group relative p-2 bg-primary/10 hover:bg-primary/20 rounded-xl text-primary transition-all active:scale-95"
-              title="AI Studio (Ctrl+A)"
-            >
-              <span className="material-icons-round text-xl">auto_awesome</span>
-              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <ShortcutBadge keys={['Ctrl', 'A']} />
-              </div>
-            </button>
-          </div>
+
           <button
-            onClick={() => setIsExportModalOpen(true)}
-            className="group relative ml-2 flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all text-[11px] font-black uppercase tracking-wider"
+            onClick={async () => {
+              setIsSaving(true);
+              const result = await saveLayout(state, user?.id);
+              setIsSaving(false);
+              setLastSaved(new Date());
+              if (result.success) {
+                showToast('success', user ? 'Salvo na nuvem!' : 'Salvo localmente!');
+              } else {
+                showToast('error', 'Erro ao salvar.');
+              }
+            }}
+            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title={user ? "Salvar na Nuvem" : "Salvar Local"}
           >
-            <span className="material-icons-round text-sm">download</span>
-            Exportar
-            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <ShortcutBadge keys={['Ctrl', 'E']} />
+            <span className="material-icons-round text-[18px]">{user ? "cloud_upload" : "save"}</span>
+          </button>
+
+          {/* Paper Size */}
+          <div className="relative group">
+            <button className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-[10px] font-bold uppercase transition-colors text-gray-600 dark:text-gray-300">
+              {state.paperSize.toUpperCase()}
+              <span className="material-icons-round text-[12px]">expand_more</span>
+            </button>
+            <div className="absolute top-full right-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden hidden group-hover:block z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="p-1.5 grid gap-0.5">
+                {['a4', 'a3', 'letter', 'story', 'feed'].map(size => (
+                  <button
+                    key={size}
+                    onClick={() => setAppState({ ...state, paperSize: size as any })}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-md text-[10px] font-bold uppercase flex justify-between items-center ${state.paperSize === size
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'
+                      }`}
+                  >
+                    {size}
+                    {state.paperSize === size && <span className="material-icons-round text-[12px]">check</span>}
+                  </button>
+                ))}
+                <div className="h-px bg-gray-200 dark:bg-gray-700 my-0.5" />
+                <div className="flex gap-0.5">
+                  <button
+                    onClick={() => setAppState({ ...state, orientation: 'portrait' })}
+                    className={`flex-1 flex items-center justify-center gap-0.5 py-1 rounded-md text-[9px] font-bold uppercase ${state.orientation === 'portrait' ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'}`}
+                  >
+                    <span className="material-icons-round text-[12px]">crop_portrait</span>
+                  </button>
+                  <button
+                    onClick={() => setAppState({ ...state, orientation: 'landscape' })}
+                    className={`flex-1 flex items-center justify-center gap-0.5 py-1 rounded-md text-[9px] font-bold uppercase ${state.orientation === 'landscape' ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'}`}
+                  >
+                    <span className="material-icons-round text-[12px]">crop_landscape</span>
+                  </button>
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Zoom - Compact */}
+          <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg px-1">
+            <button onClick={() => setAppState({ ...state, zoom: Math.max(25, state.zoom - 10) })} className="p-0.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+              <span className="material-icons-round text-[14px]">remove</span>
+            </button>
+            <span className="text-[9px] font-bold text-gray-600 dark:text-gray-300 w-7 text-center">{state.zoom}%</span>
+            <button onClick={() => setAppState({ ...state, zoom: Math.min(150, state.zoom + 10) })} className="p-0.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+              <span className="material-icons-round text-[14px]">add</span>
+            </button>
+          </div>
+
+          <ThemeToggle isDark={isDarkMode} onToggle={() => setIsDarkMode(!isDarkMode)} />
+
+          <button onClick={() => setIsCompactMode(!isCompactMode)} className={`p-1.5 rounded-lg transition-colors ${isCompactMode ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`} title="Modo Compacto">
+            <span className="material-icons-round text-[16px]">{isCompactMode ? 'unfold_more' : 'unfold_less'}</span>
+          </button>
+
+          {/* Quick Actions */}
+          <button onClick={() => setIsTemplateManagerOpen(true)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Templates">
+            <span className="material-icons-round text-[16px]">bookmark</span>
+          </button>
+          <button onClick={() => setIsAIStudioOpen(true)} className="p-1.5 rounded-lg text-primary bg-primary/10 hover:bg-primary/20 transition-colors" title="AI Studio">
+            <span className="material-icons-round text-[16px]">auto_awesome</span>
+          </button>
+
+          {/* Export Button */}
+          <button onClick={() => setIsExportModalOpen(true)} className="ml-1 flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-lg shadow-sm hover:brightness-110 active:scale-95 transition-all text-[10px] font-bold uppercase">
+            <span className="material-icons-round text-[14px]">download</span>
+            Exportar
           </button>
         </div>
 
@@ -381,6 +427,17 @@ const App: React.FC = () => {
           onClose={() => setIsShortcutsHelpOpen(false)}
         />
 
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
+
+        <LoadLayoutModal
+          isOpen={isLoadLayoutModalOpen}
+          onClose={() => setIsLoadLayoutModalOpen(false)}
+          onLoad={(newState) => setAppState(newState)}
+        />
+
         <AIStudio
           isOpen={isAIStudioOpen}
           onClose={() => setIsAIStudioOpen(false)}
@@ -395,6 +452,14 @@ const App: React.FC = () => {
         />
       </div>
     </NotificationProvider>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 

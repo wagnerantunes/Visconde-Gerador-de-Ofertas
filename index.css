@@ -2,16 +2,32 @@
 @config "./tailwind.config.js";
 
 @layer base {
+
+  /* Premium SaaS Variables (Big Tech Aesthetic) */
   :root {
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.2);
-    --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --primary-glow: 225, 29, 72;
   }
 
   .dark {
     --glass-bg: rgba(10, 10, 10, 0.6);
-    --glass-border: rgba(255, 255, 255, 0.05);
-    --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    /* More subtle definition */
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  }
+
+  body {
+    background-color: theme('colors.background-light');
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+    font-family: 'Inter', sans-serif;
+  }
+
+  .dark body {
+    background-color: theme('colors.background-dark');
   }
 }
 
@@ -20,11 +36,11 @@
     @apply backdrop-blur-md border;
     background: var(--glass-bg);
     border-color: var(--glass-border);
-    box-shadow: var(--card-shadow);
+    box-shadow: var(--glass-shadow);
   }
 
   .premium-border {
-    @apply border border-black/[0.05] dark:border-white/[0.05];
+    @apply border border-black/5 dark:border-white/5;
   }
 
   .text-luxury {
@@ -37,6 +53,7 @@
 
   .hover-lift:hover {
     @apply -translate-y-1 shadow-xl;
+    box-shadow: var(--card-shadow);
   }
 
   .ripple {
@@ -184,11 +201,12 @@
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 200ms;
 }
+
 /* Premium Enhancements */
 :root {
   --gradient-primary: linear-gradient(135deg, #C62828 0%, #E53935 100%);
   --gradient-accent: linear-gradient(135deg, #1976D2 0%, #2196F3 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
   --glow-primary: 0 0 20px rgba(198, 40, 40, 0.3);
   --glow-accent: 0 0 20px rgba(33, 150, 243, 0.3);
   --glow-soft: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -197,7 +215,7 @@
 .dark {
   --gradient-primary: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   --gradient-accent: linear-gradient(135deg, #0D47A1 0%, #1565C0 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
   --glow-primary: 0 0 30px rgba(198, 40, 40, 0.5);
   --glow-accent: 0 0 30px rgba(33, 150, 243, 0.5);
   --glow-soft: 0 4px 20px rgba(0, 0, 0, 0.5);
@@ -207,7 +225,7 @@
   backdrop-filter: blur(16px);
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--card-shadow), var(--glow-soft);
+  box-shadow: var(--glass-shadow), var(--glow-soft);
 }
 
 .hover-glow {
@@ -239,6 +257,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

@@ -14,6 +14,7 @@ export interface Product {
   cols?: number;
   imageScale?: number;
   imageOffsetY?: number;
+  imageOffsetX?: number;
 }
 
 export type PaperSize = 'story' | 'feed' | 'a4' | 'a3' | 'letter';
@@ -83,6 +84,7 @@ export interface AppState {
   zoom: number;
   products: Product[];
   validUntil: string;
+  validFrom?: string;
   seasonal: SeasonalConfig;
   header: HeaderConfig;
   footer: FooterConfig;

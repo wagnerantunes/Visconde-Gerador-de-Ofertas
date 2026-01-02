@@ -1,12 +1,21 @@
 import React, { useMemo } from 'react';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { AppState } from '../types';
-import { ProductCard } from './ProductCard';
+import { SortableProduct } from './SortableProduct';
 import { getAvailablePageHeight, paginateProducts } from '../utils';
+import { ProductCard } from './ProductCard'; // Added this import, as ProductCard is used later
 
 interface FlyerPreviewProps {
   state: AppState;
 }
+
+// Helper to format date from YYYY-MM-DD to DD/MM/YYYY
+const formatDate = (dateStr: string): string => {
+  if (!dateStr) return '';
+  if (dateStr.includes('/')) return dateStr; // Already formatted
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+};
 
 export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
   if (!state || !state.paperSize || !state.zoom) {
@@ -60,7 +69,7 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
           <SortableContext
             id={`page-ctx-${pageIndex}`}
             items={pageProducts.map(p => p.id)}
-            strategy={verticalListSortingStrategy}
+            strategy={rectSortingStrategy}
           >
             <div
               id={`flyer-page-${pageIndex}`}
@@ -153,7 +162,11 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
                   className="font-bold text-lg uppercase tracking-wider flex items-center gap-2"
                   style={{ color: seasonal.primaryColor }}
                 >
-                  <span className="material-icons-round">calendar_today</span> Ofertas válidas até {state.validUntil} ou enquanto durarem os estoques
+                  <span className="material-icons-round">calendar_today</span>
+                  {state.validFrom
+                    ? `Ofertas válidas de ${formatDate(state.validFrom)} até ${formatDate(state.validUntil)}`
+                    : `Ofertas válidas até ${state.validUntil}`
+                  } ou enquanto durarem os estoques
                 </span>
               </div>
 
@@ -167,14 +180,13 @@ export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
                   }}
                 >
                   {pageProducts.map((product) => (
-                    <ProductCard
+                    <SortableProduct
                       key={product.id}
                       product={product}
                       primaryColor={seasonal.primaryColor}
                       secondaryColor={seasonal.secondaryColor}
                       fonts={state.fonts}
-                      layout={state.layout}
-                      style={{ gridColumn: `span ${product.cols || (product.isHighlight ? 2 : 1)}` }}
+                      layout={state.layout || { cardHeight: 280, rowGap: 16, cardStyle: 'classic' }}
                     />
                   ))}
                 </div>

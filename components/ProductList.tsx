@@ -108,7 +108,7 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                         >
                             <option>KG</option>
                             <option>Unid.</option>
-                            <option>Pct</option>
+                            <option>KG Pacote</option>
                             <option>100g</option>
                         </select>
                     </div>
@@ -196,33 +196,43 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                                         className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-600"
                                     />
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] text-gray-500 mb-0.5">Posição ({editData.imageOffsetY || 0}%)</span>
-                                    <input
-                                        type="range"
-                                        min="-50" max="50" step="5"
-                                        value={editData.imageOffsetY || 0}
-                                        onChange={(e) => handleChange({ imageOffsetY: parseInt(e.target.value) })}
-                                        className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-600"
-                                    />
-                                </div>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[9px] text-gray-500 mb-0.5">Vertical ({editData.imageOffsetY || 0}%)</span>
+                                <input
+                                    type="range"
+                                    min="-50" max="50" step="5"
+                                    value={editData.imageOffsetY || 0}
+                                    onChange={(e) => handleChange({ imageOffsetY: parseInt(e.target.value) })}
+                                    className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-600"
+                                />
+                            </div>
+                            <div className="flex flex-col col-span-2">
+                                <span className="text-[9px] text-gray-500 mb-0.5">Horizontal ({editData.imageOffsetX || 0}%)</span>
+                                <input
+                                    type="range"
+                                    min="-50" max="50" step="5"
+                                    value={editData.imageOffsetX || 0}
+                                    onChange={(e) => handleChange({ imageOffsetX: parseInt(e.target.value) })}
+                                    className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-600"
+                                />
                             </div>
                         </div>
                     </div>
-                    <div className="flex gap-2 pt-2">
-                        <button
-                            onClick={handleSave}
-                            className="flex-1 bg-primary text-white text-xs font-bold py-2 rounded hover:bg-red-800 transition-colors"
-                        >
-                            Salvar
-                        </button>
-                        <button
-                            onClick={handleCancel}
-                            className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white text-xs font-bold py-2 rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
-                        >
-                            Cancelar
-                        </button>
-                    </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                    <button
+                        onClick={handleSave}
+                        className="flex-1 bg-primary text-white text-xs font-bold py-2 rounded hover:bg-red-800 transition-colors"
+                    >
+                        Salvar
+                    </button>
+                    <button
+                        onClick={handleCancel}
+                        className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white text-xs font-bold py-2 rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                    >
+                        Cancelar
+                    </button>
                 </div>
 
                 {/* Image Gallery Modal */}
@@ -234,7 +244,7 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
                         setIsGalleryOpen(false);
                     }}
                 />
-            </div>
+            </div >
         );
     }
 
@@ -243,8 +253,8 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
             ref={setNodeRef}
             style={style}
             className={`premium-border rounded-2xl p-4 bg-white dark:bg-paper-dark transition-all duration-300 ${isDragging
-                    ? 'shadow-2xl scale-105 rotate-2'
-                    : 'hover-lift shadow-sm'
+                ? 'shadow-2xl scale-105 rotate-2'
+                : 'hover-lift shadow-sm'
                 }`}
         >
             <div className="flex items-center gap-3">
@@ -307,7 +317,34 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
     );
 };
 
-export const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, onRemove }) => {
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+
+interface ProductListProps {
+    products: Product[];
+    onUpdate: (id: string, updates: Partial<Product>) => void;
+    onRemove: (id: string) => void;
+    onReorder: (products: Product[]) => void;
+}
+
+export const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, onRemove, onReorder }) => {
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (active.id !== over?.id) {
+            const oldIndex = products.findIndex((p) => p.id === active.id);
+            const newIndex = products.findIndex((p) => p.id === over?.id);
+            onReorder(arrayMove(products, oldIndex, newIndex));
+        }
+    };
+
     if (products.length === 0) {
         return (
             <div className="text-center py-12 text-gray-400">
@@ -319,23 +356,34 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, on
     }
 
     return (
-        <div className="space-y-3">
-            <div className="flex items-center justify-between mb-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                    <span className="material-icons-round text-sm align-middle mr-1">info</span>
-                    Arraste para reordenar
-                </p>
-                <span className="text-xs font-bold text-primary">{products.length} produtos</span>
-            </div>
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+        >
+            <div className="space-y-3">
+                <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="material-icons-round text-sm align-middle mr-1">info</span>
+                        Arraste para reordenar
+                    </p>
+                    <span className="text-xs font-bold text-primary">{products.length} produtos</span>
+                </div>
 
-            {products.map((product) => (
-                <SortableProductItem
-                    key={product.id}
-                    product={product}
-                    onUpdate={onUpdate}
-                    onRemove={onRemove}
-                />
-            ))}
-        </div>
+                <SortableContext
+                    items={products.map(p => p.id)}
+                    strategy={verticalListSortingStrategy}
+                >
+                    {products.map((product) => (
+                        <SortableProductItem
+                            key={product.id}
+                            product={product}
+                            onUpdate={onUpdate}
+                            onRemove={onRemove}
+                        />
+                    ))}
+                </SortableContext>
+            </div>
+        </DndContext>
     );
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AppState, Product } from '../types';
 import { useToast } from '../contexts/ToastContext';
+import { generateAIContent } from '../services/aiService';
 
 interface AIStudioProps {
     isOpen: boolean;
@@ -15,34 +16,27 @@ export const AIStudio: React.FC<AIStudioProps> = ({ isOpen, onClose, state, onUp
     const [result, setResult] = useState<string>('');
     const { showToast } = useToast();
 
+    // ... inside component
+
     const generateContent = async (type: 'title' | 'description', context?: string) => {
         setIsGenerating(true);
         setResult('');
 
         try {
-            // This is a placeholder for the actual API call
-            // In a real scenario, we would use the Gemini API key from .env.local
-            // For now, we simulate the AI logic
-
             const systemPrompt = type === 'title'
-                ? "Você é um especialista em marketing para açougues. Crie 3 títulos criativos e chamativos para um encarte de ofertas com o tema: " + state.seasonal.subtitle
-                : "Crie uma descrição apetitosa e curta para o produto: " + context;
+                ? `Você é um especialista em marketing para varejo e açougues.
+                   Crie 3 títulos curtos, criativos e chamativos (máximo 5 palavras cada) para um encarte de ofertas.
+                   Tema sazonal atual: "${state.seasonal.subtitle}".
+                   Retorne apenas a lista numerada.`
+                : `Crie uma descrição curta (máximo 20 palavras), apetitosa e persuasiva para vender o seguinte produto de açougue: "${context}".
+                   Destaque qualidade, sabor ou uso culinário.`;
 
-            // Simulating API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            let mockResponse = "";
-            if (type === 'title') {
-                mockResponse = "1. Procura Qualidade? Aqui Tem!\n2. Ofertas de Verdade, Sabor Inigualável\n3. Especial " + state.seasonal.subtitle + ": O Melhor para Sua Mesa";
-            } else {
-                mockResponse = "Corte selecionado com marmoreio perfeito, garantindo maciez e sabor suculento para o seu churrasco.";
-            }
-
-            setResult(mockResponse);
-            showToast('success', 'Conteúdo gerado pela IA!');
+            const aiResponse = await generateAIContent(systemPrompt);
+            setResult(aiResponse);
+            showToast('success', 'Conteúdo gerado com sucesso!');
         } catch (error) {
             console.error('AI Error:', error);
-            showToast('error', 'Falha ao gerar conteúdo');
+            showToast('error', error instanceof Error ? error.message : 'Falha ao gerar conteúdo');
         } finally {
             setIsGenerating(false);
         }

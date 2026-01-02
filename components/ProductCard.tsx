@@ -1,5 +1,8 @@
 import React from 'react';
 import { Product, FontConfig, LayoutConfig } from '../types';
+import { CategoryIcon } from './CategoryIcon';
+
+
 
 interface ProductCardProps {
   product: Product;
@@ -37,7 +40,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             alt={product.name}
             className="w-full h-full object-contain transition-transform duration-300"
             style={{
-              transform: `scale(${product.imageScale || 1}) translateY(${product.imageOffsetY || 0}%)`
+              transform: `scale(${product.imageScale || 1}) translateY(${product.imageOffsetY || 0}%) translateX(${product.imageOffsetX || 0}%)`
             }}
           />
         </div>
@@ -55,15 +58,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.name}
           </h3>
           {product.details && (
-            <p
-              className="text-xs font-medium text-gray-500 uppercase mb-4"
-              style={{
-                fontFamily: fonts.productDetails.family,
-                fontSize: `${0.75 * fonts.productDetails.scale}rem`
-              }}
-            >
-              {product.details}
-            </p>
+            <div className="mb-4 flex justify-center">
+              <div
+                className="font-medium text-gray-500 uppercase flex items-center justify-center"
+                style={{
+                  fontFamily: fonts.productDetails.family,
+                  fontSize: `${0.75 * fonts.productDetails.scale}rem`,
+                  color: fonts.productDetails.color || '#6b7280'
+                }}
+              >
+                <CategoryIcon category={product.details} className="w-8 h-8 text-current" />
+                {!['bovinos', 'bovino', 'suinos', 'suino', 'aves', 'ave', 'frango', 'linguica'].some(k => product.details.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(k)) && (
+                  <span>{product.details}</span>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Price Badge - Integrado no layout */}
