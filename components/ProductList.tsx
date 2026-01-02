@@ -242,48 +242,61 @@ const SortableProductItem: React.FC<SortableProductItemProps> = ({ product, onUp
         <div
             ref={setNodeRef}
             style={style}
-            className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow"
+            className={`premium-border rounded-2xl p-4 bg-white dark:bg-paper-dark transition-all duration-300 ${isDragging
+                    ? 'shadow-2xl scale-105 rotate-2'
+                    : 'hover-lift shadow-sm'
+                }`}
         >
             <div className="flex items-center gap-3">
-                {/* Drag Handle */}
+                {/* Drag Handle - Modern */}
                 <button
                     {...attributes}
                     {...listeners}
-                    className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-primary dark:text-gray-600 dark:hover:text-primary transition-colors p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5"
                 >
-                    <span className="material-icons-round">drag_indicator</span>
+                    <span className="material-icons-round text-xl">drag_indicator</span>
                 </button>
 
-                {/* Product Image */}
-                <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-12 h-12 object-contain rounded"
-                />
-
-                {/* Product Info */}
-                <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-sm truncate">{product.name}</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                        R$ {product.price.toFixed(2)} / {product.unit}
-                        {product.isHighlight && (
-                            <span className="ml-2 text-primary font-bold">★ Destaque</span>
-                        )}
-                    </p>
+                {/* Product Image - Enhanced */}
+                <div className="relative group">
+                    <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-14 h-14 object-contain rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 p-1.5 border border-black/5 dark:border-white/5"
+                    />
+                    {product.isHighlight && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                            <span className="material-icons-round text-white text-[10px]">star</span>
+                        </div>
+                    )}
                 </div>
 
-                {/* Actions */}
+                {/* Product Info - Refined Typography */}
+                <div className="flex-1 min-w-0">
+                    <h4 className="font-black text-sm truncate text-gray-800 dark:text-white tracking-tight">{product.name}</h4>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-[11px] font-bold text-primary">
+                            R$ {product.price.toFixed(2)}
+                        </p>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500">•</span>
+                        <p className="text-[10px] font-bold uppercase tracking-tight text-gray-500 dark:text-gray-400">
+                            {product.unit}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Actions - Modern Icon Buttons */}
                 <div className="flex gap-1">
                     <button
                         onClick={() => setIsEditing(true)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                        className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all active:scale-90"
                         title="Editar"
                     >
                         <span className="material-icons-round text-lg">edit</span>
                     </button>
                     <button
                         onClick={() => onRemove(product.id)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all active:scale-90"
                         title="Remover"
                     >
                         <span className="material-icons-round text-lg">delete</span>

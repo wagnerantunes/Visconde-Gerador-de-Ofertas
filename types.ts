@@ -88,4 +88,5 @@ export interface AppState {
   footer: FooterConfig;
   fonts: FontConfig;
   layout: LayoutConfig;
+  googleScriptUrl?: string;
 }

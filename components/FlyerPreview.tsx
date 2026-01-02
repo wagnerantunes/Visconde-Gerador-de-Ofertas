@@ -9,6 +9,9 @@ interface FlyerPreviewProps {
 }
 
 export const FlyerPreview: React.FC<FlyerPreviewProps> = ({ state }) => {
+  if (!state || !state.paperSize || !state.zoom) {
+    return <div className="text-center p-10 text-gray-500">Carregando preview...</div>;
+  }
   /* Dimensões em px */
   const SIZES: Record<string, { w: number; h: number }> = {
     a4: { w: 1240, h: 1754 },

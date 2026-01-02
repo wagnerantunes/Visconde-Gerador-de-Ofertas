@@ -78,8 +78,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 style={{ color: fonts.price.color || secondaryColor, fontFamily: fonts.price.family }}
               >
                 <span className="text-lg mr-0.5" style={{ fontSize: `${1.125 * fonts.price.scale}rem` }}>R$</span>
-                <span className="text-6xl drop-shadow-sm" style={{ fontSize: `${3.75 * fonts.price.scale}rem` }}>{Math.floor(product.price)}</span>
-                <span className="text-3xl" style={{ fontSize: `${1.875 * fonts.price.scale}rem` }}>,{product.price.toFixed(2).split('.')[1]}</span>
+                <span className="text-6xl drop-shadow-sm" style={{ fontSize: `${3.75 * fonts.price.scale}rem` }}>{Math.floor(Number(product.price) || 0)}</span>
+                <span className="text-3xl" style={{ fontSize: `${1.875 * fonts.price.scale}rem` }}>,{(Number(product.price) || 0).toFixed(2).split('.')[1]}</span>
               </div>
               <span
                 className="text-white text-[10px] px-2 py-0.5 rounded-full uppercase font-bold mt-1"
@@ -115,8 +115,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             style={{ color: fonts.price.color || secondaryColor, fontFamily: fonts.price.family }}
           >
             <span className="text-sm mr-0.5" style={{ fontSize: `${0.875 * fonts.price.scale}rem` }}>R$</span>
-            <span className="text-4xl font-bold" style={{ fontSize: `${2.25 * fonts.price.scale}rem` }}>{Math.floor(product.price)}</span>
-            <span className="text-xl" style={{ fontSize: `${1.25 * fonts.price.scale}rem` }}>,{product.price.toFixed(2).split('.')[1]}</span>
+            <span className="text-4xl font-bold" style={{ fontSize: `${2.25 * fonts.price.scale}rem` }}>{Math.floor(Number(product.price) || 0)}</span>
+            <span className="text-xl" style={{ fontSize: `${1.25 * fonts.price.scale}rem` }}>,{(Number(product.price) || 0).toFixed(2).split('.')[1]}</span>
           </div>
           <span
             className="text-white text-[9px] font-bold uppercase mt-0.5"

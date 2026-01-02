@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 interface UseHistoryReturn<T> {
     state: T;
@@ -11,75 +11,91 @@ interface UseHistoryReturn<T> {
     clear: () => void;
 }
 
+interface InternalState<T> {
+    history: T[];
+    currentIndex: number;
+}
+
 export function useHistory<T>(initialState: T, maxHistory = 50): UseHistoryReturn<T> {
-    const [history, setHistory] = useState<T[]>([initialState]);
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [internalState, setInternalState] = useState<InternalState<T>>({
+        history: [initialState],
+        currentIndex: 0
+    });
 
     const setState = useCallback((update: T | ((prev: T) => T)) => {
-        setCurrentIndex(prevIndex => {
-            setHistory(prevHistory => {
-                const prevState = prevHistory[prevIndex];
-                const newState = typeof update === 'function' ? (update as any)(prevState) : update;
+        setInternalState(prev => {
+            const prevState = prev.history[prev.currentIndex];
+            const newState = typeof update === 'function'
+                ? (update as (p: T) => T)(prevState)
+                : update;
 
-                // Remove future states if we're not at the end
-                const newHistory = prevHistory.slice(0, prevIndex + 1);
+            // Don't add if state hasn't changed (shallow)
+            if (newState === prevState) return prev;
 
-                // Add new state
-                newHistory.push(newState);
+            const newHistory = prev.history.slice(0, prev.currentIndex + 1);
+            newHistory.push(newState);
 
-                // Limit history size
-                if (newHistory.length > maxHistory) {
-                    newHistory.shift();
-                    return newHistory;
-                }
+            const finalHistory = newHistory.length > maxHistory
+                ? newHistory.slice(newHistory.length - maxHistory)
+                : newHistory;
 
-                return newHistory;
-            });
-
-            // Update index
-            return Math.min(prevIndex + 1, maxHistory - 1);
+            return {
+                history: finalHistory,
+                currentIndex: finalHistory.length - 1
+            };
         });
     }, [maxHistory]);
 
     const replaceState = useCallback((update: T | ((prev: T) => T)) => {
-        setHistory(prevHistory => {
-            const prevState = prevHistory[currentIndex];
-            const newState = typeof update === 'function' ? (update as any)(prevState) : update;
-            const newHistory = [...prevHistory];
-            newHistory[currentIndex] = newState;
-            return newHistory;
+        setInternalState(prev => {
+            const prevState = prev.history[prev.currentIndex];
+            const newState = typeof update === 'function'
+                ? (update as (p: T) => T)(prevState)
+                : update;
+
+            const newHistory = [...prev.history];
+            newHistory[prev.currentIndex] = newState;
+
+            return {
+                ...prev,
+                history: newHistory
+            };
         });
-    }, [currentIndex]);
+    }, []);
 
     const undo = useCallback(() => {
-        setCurrentIndex(prev => Math.max(0, prev - 1));
+        setInternalState(prev => ({
+            ...prev,
+            currentIndex: Math.max(0, prev.currentIndex - 1)
+        }));
     }, []);
 
     const redo = useCallback(() => {
-        setHistory(prevHistory => {
-            setCurrentIndex(prev => Math.min(prevHistory.length - 1, prev + 1));
-            return prevHistory;
-        });
+        setInternalState(prev => ({
+            ...prev,
+            currentIndex: Math.min(prev.history.length - 1, prev.currentIndex + 1)
+        }));
     }, []);
 
     const clear = useCallback(() => {
-        setHistory(prevHistory => {
-            setCurrentIndex(prevIndex => {
-                setHistory([prevHistory[prevIndex]]);
-                return 0;
-            });
-            return prevHistory;
-        });
+        setInternalState(prev => ({
+            history: [prev.history[prev.currentIndex]],
+            currentIndex: 0
+        }));
     }, []);
 
+    const currentState = useMemo(() =>
+        internalState.history[internalState.currentIndex],
+        [internalState]);
+
     return {
-        state: history[currentIndex],
+        state: currentState,
         setState,
         replaceState,
         undo,
         redo,
-        canUndo: currentIndex > 0,
-        canRedo: currentIndex < history.length - 1,
+        canUndo: internalState.currentIndex > 0,
+        canRedo: internalState.currentIndex < internalState.history.length - 1,
         clear,
     };
 }

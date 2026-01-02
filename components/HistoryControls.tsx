@@ -14,31 +14,29 @@ export const HistoryControls: React.FC<HistoryControlsProps> = ({
     onRedo,
 }) => {
     return (
-        <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg shadow-md p-1 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-xl p-1 border border-black/5 dark:border-white/5">
             <button
                 onClick={onUndo}
                 disabled={!canUndo}
-                className={`p-2 rounded transition-colors ${canUndo
-                        ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                        : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                className={`p-2 rounded-lg transition-all active:scale-90 ${canUndo
+                    ? 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300'
+                    : 'text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50'
                     }`}
                 title="Desfazer (Ctrl+Z)"
             >
-                <span className="material-icons-round text-xl">undo</span>
+                <span className="material-icons-round text-lg">undo</span>
             </button>
-
-            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
 
             <button
                 onClick={onRedo}
                 disabled={!canRedo}
-                className={`p-2 rounded transition-colors ${canRedo
-                        ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                        : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                className={`p-2 rounded-lg transition-all active:scale-90 ${canRedo
+                    ? 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300'
+                    : 'text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50'
                     }`}
                 title="Refazer (Ctrl+Y)"
             >
-                <span className="material-icons-round text-xl">redo</span>
+                <span className="material-icons-round text-lg">redo</span>
             </button>
         </div>
     );

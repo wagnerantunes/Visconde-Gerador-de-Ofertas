@@ -11,6 +11,8 @@ import { TemplateManager } from './components/TemplateManager';
 import { ShortcutsHelp } from './components/ShortcutsHelp';
 import { StatusBar } from './components/StatusBar';
 import { PreviewControls } from './components/PreviewControls';
+import { AIStudio } from './components/AIStudio';
+import { TemplateGallery } from './components/TemplateGallery';
 import { AppState, Product } from './types';
 import { INITIAL_PRODUCTS } from './constants';
 import { SEASONAL_THEMES, DEFAULT_HEADER, DEFAULT_FOOTER } from './seasonalThemes';
@@ -18,7 +20,8 @@ import { saveToLocalStorage, loadFromLocalStorage } from './utils';
 import { useHistory } from './hooks/useHistory';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDebounce } from './hooks/useDebounce';
-import toast from 'react-hot-toast';
+import { useToast } from './contexts/ToastContext';
+import { ShortcutBadge } from './components/ShortcutBadge';
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -27,40 +30,60 @@ const App: React.FC = () => {
   });
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
+  const [isTemplateGalleryOpen, setIsTemplateGalleryOpen] = useState(false);
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
+  const [isAIStudioOpen, setIsAIStudioOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date>();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
   const [showRulers, setShowRulers] = useState(false);
+  const [isCompactMode, setIsCompactMode] = useState(() => {
+    const saved = localStorage.getItem('visconde-compact-mode');
+    return saved === 'true';
+  });
+  const { showToast } = useToast();
+
+  /* State Initialization with safe defaults */
+  const defaultState: AppState = useMemo(() => ({
+    paperSize: 'a4',
+    orientation: 'portrait',
+    pages: [{ id: 'page-1' }],
+    layout: { cardHeight: 280, rowGap: 16, cardStyle: 'classic' },
+    fonts: {
+      headerTitle: { family: 'Bebas Neue', scale: 1 },
+      headerSubtitle: { family: 'Roboto', scale: 1 },
+      storeName: { family: 'Roboto', scale: 1 },
+      productName: { family: 'Roboto', scale: 1 },
+      productDetails: { family: 'Roboto', scale: 1 },
+      price: { family: 'Bebas Neue', scale: 1 },
+      unit: { family: 'Roboto', scale: 1 }
+    },
+    columns: 3,
+    autoRows: true,
+    zoom: 50,
+    products: INITIAL_PRODUCTS.map(p => ({ ...p, pageId: 'auto' })),
+    validUntil: '10/12/2025',
+    seasonal: SEASONAL_THEMES.semana,
+    header: DEFAULT_HEADER,
+    footer: DEFAULT_FOOTER
+  }), []);
 
   const initialAppState: AppState = useMemo(() => {
     const saved = loadFromLocalStorage();
-    if (saved) return { ...saved };
-    return {
-      paperSize: 'a4',
-      orientation: 'portrait',
-      pages: [{ id: 'page-1' }],
-      layout: { cardHeight: 280, rowGap: 16, cardStyle: 'classic' },
-      fonts: {
-        headerTitle: { family: 'Bebas Neue', scale: 1 },
-        headerSubtitle: { family: 'Roboto', scale: 1 },
-        storeName: { family: 'Roboto', scale: 1 },
-        productName: { family: 'Roboto', scale: 1 },
-        productDetails: { family: 'Roboto', scale: 1 },
-        price: { family: 'Bebas Neue', scale: 1 },
-        unit: { family: 'Roboto', scale: 1 }
-      },
-      columns: 3,
-      autoRows: true,
-      zoom: 50,
-      products: INITIAL_PRODUCTS.map(p => ({ ...p, pageId: 'auto' })),
-      validUntil: '10/12/2025',
-      seasonal: SEASONAL_THEMES.semana,
-      header: DEFAULT_HEADER,
-      footer: DEFAULT_FOOTER
-    };
-  }, []);
+    if (saved) {
+      return {
+        ...defaultState,
+        ...saved,
+        // Ensure critical nested objects are merged, not just replaced
+        layout: { ...defaultState.layout, ...(saved.layout || {}) },
+        fonts: { ...defaultState.fonts, ...(saved.fonts || {}) },
+        header: { ...defaultState.header, ...(saved.header || {}) },
+        footer: { ...defaultState.footer, ...(saved.footer || {}) },
+      };
+    }
+    return defaultState;
+  }, [defaultState]);
 
   const {
     state,
@@ -107,9 +130,19 @@ const App: React.FC = () => {
     localStorage.setItem('visconde-dark-mode', isDarkMode.toString());
   }, [isDarkMode]);
 
+  // Compact mode effect
+  useEffect(() => {
+    if (isCompactMode) {
+      document.documentElement.classList.add('compact');
+    } else {
+      document.documentElement.classList.remove('compact');
+    }
+    localStorage.setItem('visconde-compact-mode', isCompactMode.toString());
+  }, [isCompactMode]);
+
   // Quick Export Function
   const handleQuickExport = async () => {
-    toast.loading('Exportando...');
+    showToast('info', 'Abrindo exportação...');
     // Trigger export with last used format (default PNG)
     setIsExportModalOpen(true);
   };
@@ -121,12 +154,14 @@ const App: React.FC = () => {
     {
       key: 's', ctrl: true, handler: () => {
         saveToLocalStorage(state);
-        toast.success('Alterações salvas!');
+        showToast('success', 'Alterações salvas!');
       }, description: 'Salvar'
     },
     { key: 'e', ctrl: true, handler: () => setIsExportModalOpen(true), description: 'Exportar' },
     { key: 'e', ctrl: true, shift: true, handler: handleQuickExport, description: 'Exportação Rápida' },
     { key: 't', ctrl: true, handler: () => setIsTemplateManagerOpen(true), description: 'Templates' },
+    { key: 'g', ctrl: true, handler: () => setIsTemplateGalleryOpen(true), description: 'Galeria de Templates' },
+    { key: 'a', ctrl: true, handler: () => setIsAIStudioOpen(true), description: 'AI Studio' },
     { key: '/', ctrl: true, handler: () => setIsShortcutsHelpOpen(true), description: 'Ajuda' },
     { key: 'f', ctrl: true, handler: () => setIsFullscreen(!isFullscreen), description: 'Tela Cheia' },
   ]);
@@ -160,7 +195,7 @@ const App: React.FC = () => {
       ...prev,
       products: [...prev.products, product]
     }));
-    toast.success('Produto adicionado!');
+    showToast('success', 'Produto adicionado!');
   };
 
   const removeProduct = (id: string) => {
@@ -168,59 +203,112 @@ const App: React.FC = () => {
       ...prev,
       products: prev.products.filter(p => p.id !== id)
     }));
-    toast.error('Produto removido');
+    showToast('error', 'Produto removido');
   };
+
+  if (!state) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-500">
+        Carregando estado...
+      </div>
+    );
+  }
 
   return (
     <NotificationProvider>
       <div className="min-h-screen bg-background-light dark:bg-background-dark font-body transition-colors duration-300">
-        {/* Top bar with tools */}
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3">
+        {/* Top bar with tools - Modern GLASS design */}
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 glass px-4 py-2 rounded-2xl">
           <HistoryControls
             canUndo={canUndo}
             canRedo={canRedo}
             onUndo={undo}
             onRedo={redo}
           />
+          <div className="w-px h-6 bg-black/5 dark:bg-white/5 mx-1" />
           <ThemeToggle
             isDark={isDarkMode}
             onToggle={() => setIsDarkMode(!isDarkMode)}
           />
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg shadow-md px-3 py-1 border border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setIsCompactMode(!isCompactMode)}
+            className={`p-2 rounded-xl border transition-all active:scale-90 ${isCompactMode
+              ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
+              : 'bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/5 text-gray-600 dark:text-gray-400 hover:bg-black/10 dark:hover:bg-white/10'
+              }`}
+            title={isCompactMode ? 'Modo Normal' : 'Modo Compacto'}
+          >
+            <span className="material-icons-round text-lg">
+              {isCompactMode ? 'unfold_more' : 'unfold_less'}
+            </span>
+          </button>
+          <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-xl p-1 px-2 border border-black/5 dark:border-white/5">
             <button
               onClick={() => setAppState({ ...state, zoom: Math.max(25, state.zoom - 10) })}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-400"
+              className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg text-gray-500 transition-colors"
             >
-              <span className="material-icons-round">remove</span>
+              <span className="material-icons-round text-lg">remove</span>
             </button>
-            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-10 text-center">{state.zoom}%</span>
+            <span className="text-[10px] font-black text-gray-700 dark:text-gray-300 w-10 text-center tracking-tighter">{state.zoom}%</span>
             <button
               onClick={() => setAppState({ ...state, zoom: Math.min(150, state.zoom + 10) })}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-400"
+              className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg text-gray-500 transition-colors"
             >
-              <span className="material-icons-round">add</span>
+              <span className="material-icons-round text-lg">add</span>
+            </button>
+          </div>
+          <div className="w-px h-6 bg-black/5 dark:bg-white/5 mx-1" />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsTemplateManagerOpen(true)}
+              className="group relative p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-gray-600 dark:text-gray-400 transition-all active:scale-95"
+              title="Templates (Ctrl+T)"
+            >
+              <span className="material-icons-round text-xl">bookmark</span>
+              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <ShortcutBadge keys={['Ctrl', 'T']} />
+              </div>
+            </button>
+            <button
+              onClick={() => setIsTemplateGalleryOpen(true)}
+              className="group relative p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-gray-600 dark:text-gray-400 transition-all active:scale-95"
+              title="Galeria de Templates (Ctrl+G)"
+            >
+              <span className="material-icons-round text-xl">auto_awesome</span>
+              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <ShortcutBadge keys={['Ctrl', 'G']} />
+              </div>
+            </button>
+            <button
+              onClick={() => setIsShortcutsHelpOpen(true)}
+              className="group relative p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-gray-600 dark:text-gray-400 transition-all active:scale-95"
+              title="Atalhos (Ctrl+?)"
+            >
+              <span className="material-icons-round text-xl">keyboard</span>
+              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <ShortcutBadge keys={['Ctrl', '?']} />
+              </div>
+            </button>
+            <button
+              onClick={() => setIsAIStudioOpen(true)}
+              className="group relative p-2 bg-primary/10 hover:bg-primary/20 rounded-xl text-primary transition-all active:scale-95"
+              title="AI Studio (Ctrl+A)"
+            >
+              <span className="material-icons-round text-xl">auto_awesome</span>
+              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <ShortcutBadge keys={['Ctrl', 'A']} />
+              </div>
             </button>
           </div>
           <button
-            onClick={() => setIsTemplateManagerOpen(true)}
-            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            title="Templates (Ctrl+T)"
-          >
-            <span className="material-icons-round text-gray-700 dark:text-gray-300">bookmark</span>
-          </button>
-          <button
-            onClick={() => setIsShortcutsHelpOpen(true)}
-            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            title="Atalhos (Ctrl+?)"
-          >
-            <span className="material-icons-round text-gray-700 dark:text-gray-300">keyboard</span>
-          </button>
-          <button
             onClick={() => setIsExportModalOpen(true)}
-            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-700 transition-colors font-bold text-sm"
+            className="group relative ml-2 flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all text-[11px] font-black uppercase tracking-wider"
           >
-            <span className="material-icons-round">download</span>
-            EXPORTAR
+            <span className="material-icons-round text-sm">download</span>
+            Exportar
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <ShortcutBadge keys={['Ctrl', 'E']} />
+            </div>
           </button>
         </div>
 
@@ -279,9 +367,25 @@ const App: React.FC = () => {
           currentState={state}
         />
 
+        <TemplateGallery
+          isOpen={isTemplateGalleryOpen}
+          onClose={() => setIsTemplateGalleryOpen(false)}
+          onApplyTemplate={(templateState) => {
+            setAppState({ ...state, ...templateState });
+            showToast('success', 'Template aplicado com sucesso!');
+          }}
+        />
+
         <ShortcutsHelp
           isOpen={isShortcutsHelpOpen}
           onClose={() => setIsShortcutsHelpOpen(false)}
+        />
+
+        <AIStudio
+          isOpen={isAIStudioOpen}
+          onClose={() => setIsAIStudioOpen(false)}
+          state={state}
+          onUpdateState={(updates) => setAppState(prev => ({ ...prev, ...updates }))}
         />
 
         <StatusBar

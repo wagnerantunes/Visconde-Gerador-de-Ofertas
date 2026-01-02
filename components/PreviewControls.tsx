@@ -18,40 +18,50 @@ export const PreviewControls: React.FC<PreviewControlsProps> = ({
     showRulers,
 }) => {
     return (
-        <div className="fixed top-20 right-4 z-30 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
+        <div className="fixed top-20 right-4 z-30 glass rounded-2xl p-2 flex flex-col gap-1 animate-slideInRight">
             <button
                 onClick={onToggleFullscreen}
-                className={`p-2 rounded transition-colors ${isFullscreen
-                        ? 'bg-primary text-white'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                className={`group relative p-3 rounded-xl transition-all ${isFullscreen
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400'
                     }`}
                 title="Tela Cheia"
             >
-                <span className="material-icons-round">
+                <span className="material-icons-round text-lg">
                     {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
+                </span>
+                {/* Tooltip */}
+                <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    {isFullscreen ? 'Sair Tela Cheia' : 'Tela Cheia'}
                 </span>
             </button>
 
             <button
                 onClick={onToggleGrid}
-                className={`p-2 rounded transition-colors ${showGrid
-                        ? 'bg-primary text-white'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                className={`group relative p-3 rounded-xl transition-all ${showGrid
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400'
                     }`}
                 title="Grade de Referência"
             >
-                <span className="material-icons-round">grid_on</span>
+                <span className="material-icons-round text-lg">grid_on</span>
+                <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    Grade
+                </span>
             </button>
 
             <button
                 onClick={onToggleRulers}
-                className={`p-2 rounded transition-colors ${showRulers
-                        ? 'bg-primary text-white'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                className={`group relative p-3 rounded-xl transition-all ${showRulers
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400'
                     }`}
                 title="Réguas"
             >
-                <span className="material-icons-round">straighten</span>
+                <span className="material-icons-round text-lg">straighten</span>
+                <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    Réguas
+                </span>
             </button>
         </div>
     );

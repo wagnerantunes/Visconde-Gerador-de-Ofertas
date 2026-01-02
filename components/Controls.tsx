@@ -29,6 +29,8 @@ export const Controls: React.FC<ControlsProps> = ({
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [batchText, setBatchText] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMode, setSyncMode] = useState<'merge' | 'replace'>('merge');
+  const [tempScriptUrl, setTempScriptUrl] = useState(state.googleScriptUrl || 'https://script.google.com/macros/s/AKfycbzy6IUgIPzIYtz8DmOGHqNm4kque5kxGNz4daboARq4qfznaKTC5r1Q2vzX_-CyLsKK/exec');
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -133,21 +135,26 @@ export const Controls: React.FC<ControlsProps> = ({
     setIsSyncing(true);
     setSyncMessage(null);
 
+    // Save the URL to state if changed
+    if (tempScriptUrl !== state.googleScriptUrl) {
+      onUpdateState({ googleScriptUrl: tempScriptUrl });
+    }
+
     try {
-      const response = await fetch('https://script.google.com/macros/s/AKfycbzy6IUgIPzIYtz8DmOGHqNm4kque5kxGNz4daboARq4qfznaKTC5r1Q2vzX_-CyLsKK/exec');
+      const response = await fetch(tempScriptUrl);
 
       if (!response.ok) {
-        throw new Error('Erro ao conectar com o Google Sheets');
+        throw new Error('Erro ao conectar com o Google Sheets. Verifique a URL do Script.');
       }
 
       const data = await response.json();
 
       if (!data.sucesso || !data.ofertas) {
-        throw new Error('Formato de dados inválido');
+        throw new Error('Formato de dados inválido ou planilha vazia');
       }
 
       // Mapear os dados do Google Sheets para o formato Product
-      const newProducts: Product[] = data.ofertas.map((oferta: any) => ({
+      const incomingProducts: Product[] = data.ofertas.map((oferta: any) => ({
         id: Date.now().toString() + Math.random(),
         name: oferta.produto || '',
         price: oferta.preco || 0,
@@ -158,18 +165,19 @@ export const Controls: React.FC<ControlsProps> = ({
         pageId: 'auto'
       }));
 
-      // Adicionar os produtos
-      onUpdateState({ products: [...state.products, ...newProducts] });
+      // Adicionar os produtos conforme o modo
+      const products = syncMode === 'replace'
+        ? incomingProducts
+        : [...state.products, ...incomingProducts];
+
+      onUpdateState({ products });
 
       setSyncMessage({
         type: 'success',
-        text: `${newProducts.length} produtos importados com sucesso!`
+        text: `${incomingProducts.length} produtos ${syncMode === 'replace' ? 'importados (lista substituída)' : 'adicionados'} com sucesso!`
       });
 
-      // Mudar para a aba de lista após sincronizar
       setProductTab('list');
-
-      // Limpar mensagem após 5 segundos
       setTimeout(() => setSyncMessage(null), 5000);
 
     } catch (error) {
@@ -178,8 +186,6 @@ export const Controls: React.FC<ControlsProps> = ({
         type: 'error',
         text: error instanceof Error ? error.message : 'Erro ao sincronizar com Google Sheets'
       });
-
-      // Limpar mensagem de erro após 5 segundos
       setTimeout(() => setSyncMessage(null), 5000);
     } finally {
       setIsSyncing(false);
@@ -196,36 +202,45 @@ export const Controls: React.FC<ControlsProps> = ({
 
   return (
     <aside className="w-full max-w-md flex flex-col border-r border-gray-200 dark:border-gray-700 bg-paper-light dark:bg-paper-dark h-full shadow-xl z-20 overflow-hidden">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="bg-primary text-white p-2 rounded-lg">
-            <span className="material-icons-round text-2xl">grid_view</span>
+      {/* Premium Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 gradient-bg opacity-90"></div>
+        <div className="relative p-6 pb-4">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl"></div>
+              <div className="relative bg-white/10 backdrop-blur-sm p-3 rounded-2xl border border-white/20">
+                <span className="material-icons-round text-3xl text-white drop-shadow-lg">grid_view</span>
+              </div>
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-white tracking-tight drop-shadow-lg">Gerador de Ofertas</h1>
+              <p className="text-sm text-white/80 font-medium mt-0.5">Visconde Carnes • Premium Tool</p>
+            </div>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Gerador de Ofertas</h1>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Configure o layout e adicione produtos.</p>
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      {/* Accordion-Style Navigation */}
+      <div className="p-4 space-y-2">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex flex-col items-center gap-1 py-3 text-xs font-bold uppercase tracking-wide transition-all border-b-2 ${activeTab === tab.id
-              ? 'border-primary text-primary bg-red-50 dark:bg-red-900/20'
-              : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-              }`}
+            className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border ${activeTab === tab.id ? 'bg-primary/5 border-primary/20 shadow-sm' : 'bg-white dark:bg-paper-dark border-black/[0.05] dark:border-white/[0.05] hover:bg-black/[0.02] dark:hover:bg-white/[0.02]'}`}
           >
-            <span className="material-icons-round text-lg">{tab.icon}</span>
-            <span>{tab.label}</span>
+            <div className="flex items-center gap-3">
+              <span className={`material-icons-round text-xl ${activeTab === tab.id ? 'text-primary' : 'text-gray-400'}`}>{tab.icon}</span>
+              <h3 className={`text-xs font-black uppercase tracking-wider ${activeTab === tab.id ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>{tab.label}</h3>
+              {tab.id === 'produtos' && <span className="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-black rounded-full">{state.products.length}</span>}
+            </div>
+            <span className={`material-icons-round text-gray-400 transition-transform duration-300 ${activeTab === tab.id ? 'rotate-180' : 'rotate-0'}`}>expand_more</span>
           </button>
         ))}
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4">
         {/* TEMA TAB */}
         {activeTab === 'tema' && (
           <>
@@ -916,36 +931,51 @@ export const Controls: React.FC<ControlsProps> = ({
               <div className="space-y-4">
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <div className="flex items-start gap-3 mb-3">
-                    <span className="material-icons-round text-blue-600 dark:text-blue-400 text-2xl">cloud</span>
+                    <span className="material-icons-round text-blue-600 dark:text-blue-400 text-2xl">cloud_sync</span>
                     <div>
                       <h4 className="text-sm font-bold text-blue-900 dark:text-blue-100 mb-1">
-                        Importar do Google Sheets
+                        Sincronização Avançada
                       </h4>
                       <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                        Sincronize produtos diretamente da sua planilha do Google Sheets.
-                        Os produtos serão adicionados à lista existente.
+                        Conecte diretamente com seu Google Sheets. Escolha se deseja mesclar com a lista atual ou substituir tudo.
                       </p>
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 mt-3 border border-blue-100 dark:border-blue-900">
-                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      📋 Estrutura esperada da planilha:
-                    </p>
-                    <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1 ml-4">
-                      <li>• <strong>produto</strong>: Nome do produto</li>
-                      <li>• <strong>preco</strong>: Preço (número)</li>
-                      <li>• <strong>unidade/obs</strong>: KG, Unid., etc.</li>
-                      <li>• <strong>categoria</strong>: Categoria (opcional)</li>
-                    </ul>
+                  <div className="space-y-3 mt-4">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-blue-800 dark:text-blue-400 mb-1">URL do Script do Google</label>
+                      <input
+                        type="text"
+                        value={tempScriptUrl}
+                        onChange={(e) => setTempScriptUrl(e.target.value)}
+                        placeholder="https://script.google.com/macros/..."
+                        className="w-full text-[10px] p-2 bg-white dark:bg-gray-800 border border-blue-100 dark:border-blue-900 rounded-lg focus:ring-1 focus:ring-blue-400 outline-none"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setSyncMode('merge')}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[10px] font-bold transition-all border ${syncMode === 'merge' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700'}`}
+                      >
+                        <span className="material-icons-round text-sm">add_to_photos</span> Mesclar
+                      </button>
+                      <button
+                        onClick={() => setSyncMode('replace')}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[10px] font-bold transition-all border ${syncMode === 'replace' ? 'bg-red-600 text-white border-red-600' : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700'}`}
+                      >
+                        <span className="material-icons-round text-sm">history_edu</span> Substituir
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* Sync Feedback Message */}
                 {syncMessage && (
                   <div className={`p-3 rounded-lg border ${syncMessage.type === 'success'
-                      ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300'
-                      : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+                    ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300'
+                    : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
                     }`}>
                     <p className="text-xs font-bold flex items-center gap-2">
                       <span className="material-icons-round text-sm">
@@ -960,28 +990,32 @@ export const Controls: React.FC<ControlsProps> = ({
                 <button
                   onClick={handleSyncGoogleSheets}
                   disabled={isSyncing}
-                  className="w-full py-4 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 px-4 bg-primary text-white font-black uppercase tracking-widest text-[11px] rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 disabled:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                 >
                   {isSyncing ? (
                     <>
-                      <span className="material-icons-round animate-spin">sync</span>
+                      <span className="material-icons-round animate-spin text-sm">sync</span>
                       Sincronizando...
                     </>
                   ) : (
                     <>
-                      <span className="material-icons-round">cloud_download</span>
-                      Importar Produtos da Planilha
+                      <span className="material-icons-round text-sm">sync_alt</span>
+                      {syncMode === 'replace' ? 'Substituir Lista Pela Planilha' : 'Puxar Dados da Planilha'}
                     </>
                   )}
                 </button>
 
-                {state.products.length > 0 && (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 text-center">
-                      Você já tem {state.products.length} produto(s) na lista
-                    </p>
+                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+                  <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-tighter">
+                    💡 Dicas para a Planilha:
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-gray-400">
+                    <div className="flex items-center gap-1"><span className="w-1 h-1 bg-primary rounded-full"></span> Coluna: <b>produto</b></div>
+                    <div className="flex items-center gap-1"><span className="w-1 h-1 bg-primary rounded-full"></span> Coluna: <b>preco</b></div>
+                    <div className="flex items-center gap-1"><span className="w-1 h-1 bg-primary rounded-full"></span> Coluna: <b>unidade</b></div>
+                    <div className="flex items-center gap-1"><span className="w-1 h-1 bg-primary rounded-full"></span> Coluna: <b>categoria</b></div>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
