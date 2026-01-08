@@ -46,6 +46,14 @@ export const loadFromLocalStorage = (): AppState | null => {
     }
 };
 
+export const clearSessionStorage = (): void => {
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+        console.error('Erro ao limpar localStorage:', error);
+    }
+};
+
 // --- Pagination Logic ---
 
 const SIZES: Record<string, { w: number; h: number }> = {
@@ -67,9 +75,9 @@ export const getAvailablePageHeight = (
     const height = isLandscape ? baseSize.w : baseSize.h;
 
     // Estimativas padronizadas para evitar erros de renderização
-    const headerHeight = headerCustom ? 240 : 180;
-    const footerHeight = footerCustom ? 240 : 140;
-    const verticalPadding = 40;
+    const headerHeight = headerCustom ? 200 : 160;
+    const footerHeight = footerCustom ? 200 : 120;
+    const verticalPadding = 0;
     const safeMargin = 0;
 
     return height - headerHeight - footerHeight - verticalPadding - safeMargin;
@@ -81,25 +89,49 @@ export const paginateProducts = (
     itemHeight: number,
     columns: number
 ): Product[][] => {
-    const rowsPerPage = Math.max(1, Math.floor(availableHeight / itemHeight));
-    const slotsPerPage = rowsPerPage * columns;
+    // Dividers ocupam menos espaço (~80-100px vs 280px+), então usamos um fator de 0.35
+    const dividerHeightFactor = 0.35;
 
     const pages: Product[][] = [];
     let currentPage: Product[] = [];
-    let currentSlotsUsed = 0;
+    let currentRowSlotsTaken = 0;
+    let currentHeightUsed = 0; // Mudamos de rows para altura em pixels
 
     products.forEach((product) => {
-        // Destaque ocupa 2 cols (ou config), Normal ocupa 1.
-        const productSlots = product.cols || (product.isHighlight ? 2 : 1);
+        // Determine column span
+        let span = product.type === 'divider' ? columns : (product.cols || 1);
+        if (span > columns) span = columns;
 
-        if (currentSlotsUsed + productSlots > slotsPerPage) {
+        // Calcula altura que este produto vai ocupar
+        const productHeight = product.type === 'divider'
+            ? itemHeight * dividerHeightFactor
+            : itemHeight;
+
+        // Check if we need to wrap to new row
+        const needsNewRow = currentRowSlotsTaken + span > columns || product.type === 'divider';
+
+        if (needsNewRow && currentRowSlotsTaken > 0) {
+            // Adiciona a altura da linha atual antes de começar nova linha
+            currentHeightUsed += itemHeight;
+            currentRowSlotsTaken = 0;
+        }
+
+        // Check if it fits on the current page (com a altura do produto atual)
+        if (currentHeightUsed + productHeight > availableHeight) {
             pages.push(currentPage);
             currentPage = [];
-            currentSlotsUsed = 0;
+            currentHeightUsed = 0;
+            currentRowSlotsTaken = 0;
         }
 
         currentPage.push(product);
-        currentSlotsUsed += productSlots;
+        currentRowSlotsTaken += span;
+
+        // If divider or exactly filled the row, add height and reset slots
+        if (product.type === 'divider' || currentRowSlotsTaken === columns) {
+            currentHeightUsed += productHeight;
+            currentRowSlotsTaken = 0;
+        }
     });
 
     if (currentPage.length > 0) {

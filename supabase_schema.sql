@@ -32,7 +32,8 @@ create table layouts (
   name text default 'Sem Título',
   state jsonb not null, -- Stores the entire JSON state of the flyer
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  CONSTRAINT layouts_user_id_name_key UNIQUE (user_id, name)
 );
 
 -- Set up Row Level Security (RLS) for layouts

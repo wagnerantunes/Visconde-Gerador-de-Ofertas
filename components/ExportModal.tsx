@@ -23,7 +23,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
         const options = {
             quality: 1.0,
             pixelRatio: scale,
-            backgroundColor: '#ffffff',
+            backgroundColor: null,
+            cacheBust: true,
             style: { transform: 'scale(1)', margin: '0' } // Reseta transform e margin
         };
 
@@ -31,86 +32,182 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
         return await toJpeg(element, options);
     };
 
+    // Converte data URI para Blob
+    const dataURItoBlob = (dataURI: string): Blob => {
+        const byteString = atob(dataURI.split(',')[1]);
+        const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], { type: mimeString });
+    };
+
     const handleExport = async (targetFormat: 'png' | 'jpg' | 'pdf') => {
         setIsExporting(true);
         setProgress('Iniciando exportação...');
 
         try {
-            const fileName = `ofertas-${state.seasonal.theme}-${new Date().toISOString().split('T')[0]}`;
-            // Scale 3 para alta resolução
+            // 1. Gerar Nome Inteligente
+            const formatNames: Record<string, string> = {
+                'a4': 'A4', 'feed': 'Feed', 'story': 'Story', 'tabloid': 'Tabloide',
+                'feed-side': 'Feed-Side', 'story-side': 'Story-Side', 'feed-story': 'Misto'
+            };
+            const formatLabel = formatNames[state.paperSize] || state.paperSize;
+
+            let dateLabel = '';
+            if (state.validUntil) {
+                const [y, m, d] = state.validUntil.split('-');
+                dateLabel = ` - Validade ${d}-${m}-${y}`;
+            }
+
+            // Ex: "Feed - Validade 10-12-2023" ou "Tabloide - Validade..."
+            const baseFileName = `${formatLabel}${dateLabel}`;
             const scale = 3;
 
-            // Recalcular paginação para garantir consistência com o Preview
-            const availableHeight = getAvailablePageHeight(
-                state.paperSize,
-                state.orientation,
-                !!state.header.customImage,
-                !!state.footer.customImage
-            );
-            const itemHeight = (state.layout.cardHeight || 280) + (state.layout.rowGap || 16);
+            // 2. Determinar Páginas a Exportar
+            let pagesToExport: { index: number; suffix: string }[] = [];
 
-            const productPages = paginateProducts(state.products, availableHeight, itemHeight, state.columns);
+            if (state.paperSize === 'feed-story') {
+                // --- LÓGICA MISTA (Feed + Story) ---
+                const feedH = getAvailablePageHeight('feed', state.orientation, !!state.header.customImage, !!state.footer.customImage);
+                const feedPages = paginateProducts(state.products, feedH, (state.layout?.cardHeight || 280) + (state.layout?.rowGap || 16), state.columns);
+
+                const sec = state.secondarySettings || { layout: state.layout, columns: 1 };
+                const storyH = getAvailablePageHeight('story', state.orientation, !!state.header.customImage, !!state.footer.customImage);
+                const storyPages = paginateProducts(state.products, storyH, (sec.layout?.cardHeight || 280) + 16, sec.columns || 1);
+
+                // Feed Pages (Index 0 to N-1)
+                feedPages.forEach((_, i) => pagesToExport.push({
+                    index: i,
+                    suffix: ` (Feed ${i + 1})`
+                }));
+
+                // Story Pages (Index N to N+M-1)
+                storyPages.forEach((_, i) => pagesToExport.push({
+                    index: feedPages.length + i,
+                    suffix: ` (Story ${i + 1})`
+                }));
+
+            } else {
+                // --- LÓGICA PADRÃO ---
+                const availableHeight = getAvailablePageHeight(state.paperSize, state.orientation, !!state.header.customImage, !!state.footer.customImage);
+                const itemHeight = (state.layout.cardHeight || 280) + (state.layout.rowGap || 16);
+                const productPages = paginateProducts(state.products, availableHeight, itemHeight, state.columns);
+
+                productPages.forEach((_, i) => pagesToExport.push({
+                    index: i,
+                    suffix: productPages.length > 1 ? ` (Pág ${i + 1})` : ''
+                }));
+            }
 
             if (targetFormat === 'pdf') {
-                // Configuração inicial do PDF baseada na orientação
                 const pdf = new jsPDF({
                     orientation: state.orientation === 'landscape' ? 'landscape' : 'portrait',
                     unit: 'mm',
-                    format: 'a4' // Padrão A4 para impressão
+                    format: state.paperSize === 'tabloid' ? [279, 432] : 'a4' // Tabloid 11x17" ~ 279x432mm
                 });
 
                 const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
 
-                for (let i = 0; i < productPages.length; i++) {
-                    setProgress(`Processando Página ${i + 1}/${productPages.length}...`);
+                for (let i = 0; i < pagesToExport.length; i++) {
+                    const page = pagesToExport[i];
+                    setProgress(`Processando Página ${i + 1}/${pagesToExport.length}...`);
 
-                    // ID do elemento baseado no índice (flyer-page-0, flyer-page-1...)
-                    const elementId = `flyer-page-${i}`;
-
-                    // Usamos JPEG para otimizar tamanho no PDF
+                    const elementId = `flyer-page-${page.index}`;
                     const imgData = await generateBaseImage(elementId, 'jpeg', scale);
                     const imgProps = pdf.getImageProperties(imgData);
 
-                    // Calcular altura proporcional à largura da página A4
-                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    // Manter Proporção
+                    const ratio = Math.min(pdfWidth / imgProps.width, pdfHeight / imgProps.height);
+                    const w = imgProps.width * ratio;
+                    const h = imgProps.height * ratio;
+                    const x = (pdfWidth - w) / 2;
+                    const y = (pdfHeight - h) / 2;
 
                     if (i > 0) pdf.addPage();
-
-                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
+                    pdf.addImage(imgData, 'JPEG', x, y, w, h);
                 }
 
-                pdf.save(`${fileName}.pdf`);
+                pdf.save(`${baseFileName}.pdf`);
 
             } else {
-                // Exportação PNG/JPG (Sequencial)
+                // Exportação PNG/JPG
                 const imgType = targetFormat === 'jpg' ? 'jpeg' : 'png';
 
-                for (let i = 0; i < productPages.length; i++) {
-                    setProgress(`Gerando Imagem ${i + 1}/${productPages.length}...`);
+                if ('showSaveFilePicker' in window) {
+                    const fileHandles: any[] = [];
 
-                    const elementId = `flyer-page-${i}`;
-                    const imgData = await generateBaseImage(elementId, imgType, scale);
+                    // Passo 1: Solicitar onde salvar cada arquivo
+                    for (let i = 0; i < pagesToExport.length; i++) {
+                        const page = pagesToExport[i];
+                        const fullFileName = `${baseFileName}${page.suffix}.${targetFormat}`;
 
-                    const link = document.createElement('a');
-                    const suffix = productPages.length > 1 ? `-pg${i + 1}` : '';
-                    link.download = `${fileName}${suffix}.${targetFormat}`;
-                    link.href = imgData;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                        try {
+                            setProgress(`Salvar Arquivo ${i + 1}/${pagesToExport.length}...`);
+                            const handle = await (window as any).showSaveFilePicker({
+                                suggestedName: fullFileName,
+                                types: [{
+                                    description: `${targetFormat.toUpperCase()} Image`,
+                                    accept: { [`image/${imgType}`]: [`.${targetFormat}`] }
+                                }]
+                            });
+                            fileHandles.push(handle);
+                        } catch (err: any) {
+                            if (err.name === 'AbortError') {
+                                setProgress('Exportação cancelada');
+                                setTimeout(() => { setIsExporting(false); onClose(); }, 1000);
+                                return;
+                            }
+                            throw err;
+                        }
+                    }
 
-                    // Pequeno delay para evitar bloqueio de downloads múltiplos
-                    if (productPages.length > 1) await new Promise(r => setTimeout(r, 800));
+                    // Passo 2: Gerar e Escrever
+                    for (let i = 0; i < pagesToExport.length; i++) {
+                        const page = pagesToExport[i];
+                        setProgress(`Gerando imagem ${i + 1}/${pagesToExport.length}...`);
+
+                        const elementId = `flyer-page-${page.index}`;
+                        const imgData = await generateBaseImage(elementId, imgType, scale);
+
+                        const writable = await fileHandles[i].createWritable();
+                        const blob = dataURItoBlob(imgData);
+                        await writable.write(blob);
+                        await writable.close();
+                    }
+
+                } else {
+                    // Fallback Clássico (Download direto)
+                    for (let i = 0; i < pagesToExport.length; i++) {
+                        const page = pagesToExport[i];
+                        setProgress(`Baixando imagem ${i + 1}/${pagesToExport.length}...`);
+
+                        const elementId = `flyer-page-${page.index}`;
+                        const imgData = await generateBaseImage(elementId, imgType, scale);
+
+                        const link = document.createElement('a');
+                        link.href = imgData;
+                        link.download = `${baseFileName}${page.suffix}.${targetFormat}`;
+                        link.click();
+
+                        await new Promise(resolve => setTimeout(resolve, 800)); // Delay seguro
+                    }
                 }
             }
 
-            onClose();
+            setProgress('Sucesso! 🚀');
+            setTimeout(() => {
+                setIsExporting(false);
+                onClose();
+            }, 1500);
+
         } catch (error) {
             console.error('Erro na exportação:', error);
-            alert('Erro ao exportar. Tente recarregar a página e tentar novamente.');
-        } finally {
-            setIsExporting(false);
-            setProgress('');
+            setProgress('Erro ao exportar');
+            setTimeout(() => setIsExporting(false), 2000);
         }
     };
 

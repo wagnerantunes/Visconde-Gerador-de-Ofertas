@@ -4,11 +4,26 @@ interface StatusBarProps {
     productCount: number;
     isSaving: boolean;
     lastSaved?: Date;
+    onShare?: () => void;
+    hasLayoutId?: boolean;
 }
 
-export const StatusBar: React.FC<StatusBarProps> = ({ productCount, isSaving, lastSaved }) => {
+export const StatusBar: React.FC<StatusBarProps> = ({ productCount, isSaving, lastSaved, onShare, hasLayoutId }) => {
     return (
         <div className="fixed bottom-4 right-4 z-30 flex items-center gap-2">
+            {/* Share Button (Only if saved) */}
+            {hasLayoutId && (
+                <button
+                    onClick={onShare}
+                    className="glass px-4 py-2.5 rounded-2xl flex items-center gap-2 hover-lift group border border-primary/20 hover:border-primary/40 transition-all"
+                >
+                    <span className="material-icons-round text-primary text-lg transition-transform group-hover:scale-110">share</span>
+                    <span className="text-[11px] font-black uppercase tracking-tight text-primary">
+                        Compartilhar
+                    </span>
+                </button>
+            )}
+
             {/* Product Count - Glass Style */}
             <div className="glass px-4 py-2.5 rounded-2xl flex items-center gap-2 hover-lift">
                 <span className="material-icons-round text-primary text-lg">shopping_bag</span>

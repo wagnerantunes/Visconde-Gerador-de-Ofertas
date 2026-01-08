@@ -12,6 +12,7 @@ import { Select } from './ui/Select';
 
 import { useAuth } from '../contexts/AuthContext';
 import { AuthModal } from './auth/AuthModal';
+import { ProductListModal } from './ProductListModal';
 
 interface ControlsProps {
   state: AppState;
@@ -19,16 +20,18 @@ interface ControlsProps {
   onAddProduct: (product: Product) => void;
   onUpdateProduct: (id: string, updates: Partial<Product>) => void;
   onRemoveProduct: (id: string) => void;
+  onOpenManageList: () => void;
 }
 
-type TabType = 'tema' | 'design' | 'moldura' | 'produtos';
+type TabType = 'tema' | 'design' | 'moldura' | 'produtos' | 'lista';
 
 export const Controls: React.FC<ControlsProps> = ({
   state,
   onUpdateState,
   onAddProduct,
   onUpdateProduct,
-  onRemoveProduct
+  onRemoveProduct,
+  onOpenManageList
 }) => {
   const { user, signOut } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -162,24 +165,71 @@ export const Controls: React.FC<ControlsProps> = ({
         throw new Error('Formato de dados inválido ou planilha vazia');
       }
 
+      // Helper para buscar valor independente de maiúsculas/minúsculas
+      const getValue = (obj: any, candidates: string[]) => {
+        const keys = Object.keys(obj);
+        for (const candidate of candidates) {
+          const match = keys.find(k => k.trim().toLowerCase() === candidate.toLowerCase());
+          if (match && obj[match]) return obj[match];
+        }
+        return undefined;
+      };
+
       // Mapear os dados do Google Sheets para o formato Product
-      const incomingProducts: Product[] = data.ofertas.map((oferta: any) => ({
-        id: Date.now().toString() + Math.random(),
-        name: oferta.produto || '',
-        price: oferta.preco || 0,
-        unit: oferta.unidade || oferta.obs || 'KG',
-        isHighlight: false,
-        details: oferta.categoria || '',
-        image: findProductImage(oferta.produto || ''),
-        pageId: 'auto'
-      }));
+      const incomingProducts: Product[] = data.ofertas.map((oferta: any) => {
+        const name = getValue(oferta, ['produto', 'nome', 'name', 'item']) || '';
+        const price = getValue(oferta, ['preco', 'preço', 'price', 'valor']) || 0;
+        const rawUnit = getValue(oferta, ['unidade', 'un', 'medida', 'unit', 'obs', 'observacao', 'observação', 'complemento']);
+        const category = getValue(oferta, ['categoria', 'detalhes', 'cat']) || '';
 
-      // Adicionar os produtos conforme o modo
-      const products = syncMode === 'replace'
-        ? incomingProducts
-        : [...state.products, ...incomingProducts];
+        return {
+          id: Date.now().toString() + Math.random(),
+          name: name,
+          price: price,
+          unit: rawUnit || 'KG',
+          isHighlight: false,
+          details: category,
+          image: findProductImage(name),
+          pageId: 'auto'
+        };
+      });
 
-      onUpdateState({ products });
+      // Lógica de Sincronização Inteligente (Restaurada conforme pedido)
+      let finalProducts: Product[] = [];
+
+      if (syncMode === 'replace') {
+        finalProducts = incomingProducts;
+      } else {
+        // Modo Merge: Atualizar itens existentes se o nome for igual, adicionar novos no fim
+        const normalizeName = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+        // 1. Atualiza os produtos que já estão no layout
+        finalProducts = state.products.map(current => {
+          const normCurrent = normalizeName(current.name);
+          const match = incomingProducts.find(incoming => normalizeName(incoming.name) === normCurrent);
+
+          if (match) {
+            // Se encontrou na planilha: Atualiza Preço, Unidade e Detalhes
+            // Mantém: ID, Destaque, Imagem (se já configurada), Posição
+            return {
+              ...current,
+              price: match.price,
+              unit: match.unit,
+              details: match.details || current.details,
+              image: (current.image && !current.image.includes('placeholder')) ? current.image : match.image
+            };
+          }
+          return current;
+        });
+
+        // 2. Adiciona produtos NOVOS da planilha que não estão no layout
+        const currentNames = new Set(state.products.map(p => normalizeName(p.name)));
+        const newProducts = incomingProducts.filter(incoming => !currentNames.has(normalizeName(incoming.name)));
+
+        finalProducts = [...finalProducts, ...newProducts];
+      }
+
+      onUpdateState({ products: finalProducts });
 
       setSyncMessage({
         type: 'success',
@@ -205,7 +255,8 @@ export const Controls: React.FC<ControlsProps> = ({
     { id: 'tema' as TabType, label: 'Tema', icon: 'palette' },
     { id: 'design' as TabType, label: 'Design', icon: 'brush' },
     { id: 'moldura' as TabType, label: 'Cabeçalho e Rodapé', icon: 'crop_free' },
-    { id: 'produtos' as TabType, label: 'Ofertas', icon: 'inventory_2' }
+    { id: 'produtos' as TabType, label: 'Ofertas', icon: 'inventory_2' },
+    { id: 'lista' as TabType, label: 'Lista', icon: 'format_list_bulleted' }
   ];
 
   return (
@@ -216,8 +267,14 @@ export const Controls: React.FC<ControlsProps> = ({
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 min-w-[70px] flex flex-col items-center justify-center py-2 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === tab.id
+              onClick={() => {
+                if (tab.id === 'lista') {
+                  onOpenManageList();
+                } else {
+                  setActiveTab(tab.id);
+                }
+              }}
+              className={`flex-1 min-w-[65px] flex flex-col items-center justify-center py-2 px-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === tab.id
                 ? 'bg-white dark:bg-gray-700 text-primary shadow-sm scale-100 ring-1 ring-black/5 dark:ring-white/5'
                 : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 scale-95 opacity-70 hover:opacity-100'
                 }`}
@@ -261,6 +318,50 @@ export const Controls: React.FC<ControlsProps> = ({
                     </button>
                   ))}
                 </div>
+
+                {/* Seletor de Cores (Apenas para Personalizado) */}
+                {state.seasonal.theme === 'custom' && (
+                  <div className="mt-3 grid grid-cols-2 gap-3 p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm animate-in fade-in slide-in-from-top-2">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1.5 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-primary"></span> Cor Principal
+                      </label>
+                      <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900/50 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <input
+                          type="color"
+                          value={state.seasonal.primaryColor}
+                          onChange={(e) => onUpdateState({ seasonal: { ...state.seasonal, primaryColor: e.target.value } })}
+                          className="w-8 h-8 rounded-md border-none cursor-pointer p-0 bg-transparent"
+                        />
+                        <input
+                          type="text"
+                          value={state.seasonal.primaryColor}
+                          onChange={(e) => onUpdateState({ seasonal: { ...state.seasonal, primaryColor: e.target.value } })}
+                          className="flex-1 min-w-0 bg-transparent text-[10px] font-mono text-gray-600 dark:text-gray-300 focus:outline-none uppercase"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1.5 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-secondary"></span> Cor Secundária
+                      </label>
+                      <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900/50 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <input
+                          type="color"
+                          value={state.seasonal.secondaryColor}
+                          onChange={(e) => onUpdateState({ seasonal: { ...state.seasonal, secondaryColor: e.target.value } })}
+                          className="w-8 h-8 rounded-md border-none cursor-pointer p-0 bg-transparent"
+                        />
+                        <input
+                          type="text"
+                          value={state.seasonal.secondaryColor}
+                          onChange={(e) => onUpdateState({ seasonal: { ...state.seasonal, secondaryColor: e.target.value } })}
+                          className="flex-1 min-w-0 bg-transparent text-[10px] font-mono text-gray-600 dark:text-gray-300 focus:outline-none uppercase"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </section>
 
               {/* Validade */}
@@ -294,6 +395,55 @@ export const Controls: React.FC<ControlsProps> = ({
                   </p>
                 </div>
               </section>
+
+              {/* Elementos Visíveis Universal */}
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
+                  Visibilidade (Padrão)
+                </h3>
+                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Price Toggle */}
+                    <button
+                      onClick={() => onUpdateState({ layout: { ...state.layout, visibleFields: { ...state.layout.visibleFields, price: !(state.layout.visibleFields?.price ?? true) } } })}
+                      className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${state.layout.visibleFields?.price !== false ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400'}`}
+                    >
+                      <span className="material-icons-round text-sm">{state.layout.visibleFields?.price !== false ? 'visibility' : 'visibility_off'}</span>
+                      <span className="text-[10px] font-bold">PREÇO</span>
+                    </button>
+
+                    {/* Unit Toggle */}
+                    <button
+                      onClick={() => onUpdateState({ layout: { ...state.layout, visibleFields: { ...state.layout.visibleFields, unit: !(state.layout.visibleFields?.unit ?? true) } } })}
+                      className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${state.layout.visibleFields?.unit !== false ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400'}`}
+                    >
+                      <span className="material-icons-round text-sm">{state.layout.visibleFields?.unit !== false ? 'scale' : 'visibility_off'}</span>
+                      <span className="text-[10px] font-bold">UNIDADE</span>
+                    </button>
+
+                    {/* Details Toggle */}
+                    <button
+                      onClick={() => onUpdateState({ layout: { ...state.layout, visibleFields: { ...state.layout.visibleFields, details: !(state.layout.visibleFields?.details ?? true) } } })}
+                      className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${state.layout.visibleFields?.details !== false ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400'}`}
+                    >
+                      <span className="material-icons-round text-sm">{state.layout.visibleFields?.details !== false ? 'notes' : 'visibility_off'}</span>
+                      <span className="text-[10px] font-bold">DETALHES</span>
+                    </button>
+
+                    {/* Original Price Toggle */}
+                    <button
+                      onClick={() => onUpdateState({ layout: { ...state.layout, visibleFields: { ...state.layout.visibleFields, originalPrice: !(state.layout.visibleFields?.originalPrice ?? true) } } })}
+                      className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${state.layout.visibleFields?.originalPrice !== false ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400'}`}
+                    >
+                      <span className="material-icons-round text-sm">{state.layout.visibleFields?.originalPrice !== false ? 'percent' : 'visibility_off'}</span>
+                      <span className="text-[10px] font-bold">DESCONTOS</span>
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-gray-400 mt-2 text-center">
+                    Define o padrão para todos os itens. Você pode alterar individualmente na lista.
+                  </p>
+                </div>
+              </section>
             </div>
           )
         }
@@ -302,6 +452,27 @@ export const Controls: React.FC<ControlsProps> = ({
         {
           activeTab === 'design' && (
             <div className="animate-in fade-in duration-300 slide-in-from-bottom-2 space-y-4">
+
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
+                  Formato do Papel
+                </h3>
+                <div className="p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                  <select
+                    value={state.paperSize || 'a4'}
+                    onChange={(e) => onUpdateState({ paperSize: e.target.value as any })}
+                    className="w-full bg-white dark:bg-gray-900 border-none text-[10px] font-bold rounded-lg p-2 focus:ring-1 focus:ring-primary uppercase"
+                  >
+                    <option value="feed">Feed (Quadrado 1:1)</option>
+                    <option value="story">Story (Vertical 9:16)</option>
+                    <option value="feed-side">Feed Lado a Lado</option>
+                    <option value="story-side">Story Lado a Lado</option>
+                    <option value="feed-story">Feed + Story (Misto)</option>
+                    <option value="tabloid">Tablóide (11x17")</option>
+                    <option value="a4">A4 (Padrão)</option>
+                  </select>
+                </div>
+              </section>
 
               <section>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
@@ -331,38 +502,33 @@ export const Controls: React.FC<ControlsProps> = ({
               </section>
 
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                  <span className="material-icons-round text-sm">space_dashboard</span>
                   Layout do Flyer
                 </h3>
 
-                <div className="space-y-3">
+                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 space-y-4">
                   {/* Card Height */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Altura do Produto</span>
+                      <span className="text-[10px] font-bold uppercase text-gray-400">Altura do Produto</span>
                       <div className="flex items-center gap-0.5">
                         <input
                           type="number"
-                          min="150"
-                          max="400"
-                          step="1"
                           value={state.layout?.cardHeight || 280}
                           onChange={(e) => onUpdateState({
-                            layout: { ...(state.layout || { rowGap: 16, cardStyle: 'classic' }), cardHeight: Math.min(400, Math.max(150, parseInt(e.target.value) || 280)) }
+                            layout: { ...(state.layout || { rowGap: 16, cardStyle: 'classic' }), cardHeight: parseInt(e.target.value) || 280 }
                           })}
-                          className="w-12 text-center text-[10px] font-bold bg-primary/10 text-primary px-1 py-0.5 rounded border-0 focus:ring-1 focus:ring-primary"
+                          className="w-10 text-center text-[10px] font-bold bg-primary/10 text-primary p-0.5 rounded"
                         />
-                        <span className="text-[10px] text-primary font-medium">px</span>
+                        <span className="text-[9px] text-primary font-bold">PX</span>
                       </div>
                     </div>
                     <input
-                      type="range"
-                      min="150"
-                      max="400"
-                      step="1"
+                      type="range" min="150" max="450" step="1"
                       value={state.layout?.cardHeight || 280}
                       onChange={(e) => onUpdateState({
-                        layout: { ...(state.layout || { rowGap: 16, cardStyle: 'classic' }), cardHeight: parseInt(e.target.value) }
+                        layout: { ...state.layout, cardHeight: parseInt(e.target.value) }
                       })}
                       className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-primary"
                     />
@@ -371,34 +537,182 @@ export const Controls: React.FC<ControlsProps> = ({
                   {/* Row Gap */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Espaçamento Vertical</span>
+                      <span className="text-[10px] font-bold uppercase text-gray-400">Espaço entre Itens</span>
                       <div className="flex items-center gap-0.5">
                         <input
                           type="number"
-                          min="0"
-                          max="100"
-                          step="1"
                           value={state.layout?.rowGap !== undefined ? state.layout.rowGap : 16}
                           onChange={(e) => onUpdateState({
-                            layout: { ...(state.layout || { cardHeight: 280, cardStyle: 'classic' }), rowGap: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) }
+                            layout: { ...state.layout, rowGap: parseInt(e.target.value) || 0 }
                           })}
-                          className="w-12 text-center text-[10px] font-bold bg-primary/10 text-primary px-1 py-0.5 rounded border-0 focus:ring-1 focus:ring-primary"
+                          className="w-10 text-center text-[10px] font-bold bg-primary/10 text-primary p-0.5 rounded"
                         />
-                        <span className="text-[10px] text-primary font-medium">px</span>
+                        <span className="text-[9px] text-primary font-bold">PX</span>
                       </div>
                     </div>
                     <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="1"
+                      type="range" min="0" max="100" step="1"
                       value={state.layout?.rowGap !== undefined ? state.layout.rowGap : 16}
                       onChange={(e) => onUpdateState({
-                        layout: { ...(state.layout || { cardHeight: 280, cardStyle: 'classic' }), rowGap: parseInt(e.target.value) }
+                        layout: { ...state.layout, rowGap: parseInt(e.target.value) }
                       })}
                       className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-primary"
                     />
                   </div>
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                  <span className="material-icons-round text-sm">stars</span>
+                  Estilo das Ofertas
+                </h3>
+
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-2">Splash de Preço</label>
+                    <select
+                      value={state.layout?.priceStyle || 'star'}
+                      onChange={(e) => onUpdateState({ layout: { ...state.layout, priceStyle: e.target.value as any } })}
+                      className="w-full bg-white dark:bg-gray-900 border-none text-[10px] font-bold rounded-lg p-1.5 focus:ring-1 focus:ring-primary"
+                    >
+                      <option value="classic">Clássico (Retangular)</option>
+                      <option value="star">Explosão (Estrela)</option>
+                      <option value="badge">Selo (Circular)</option>
+                      <option value="outline">Contorno (Moderno)</option>
+                      <option value="minimal">Mínimo (Texto Puro)</option>
+                    </select>
+                  </div>
+
+                  <div className="p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-2">Estilo do Selo</label>
+                    <select
+                      value={state.layout?.stickerStyle || 'ribbon'}
+                      onChange={(e) => onUpdateState({ layout: { ...state.layout, stickerStyle: e.target.value as any } })}
+                      className="w-full bg-white dark:bg-gray-900 border-none text-[10px] font-bold rounded-lg p-1.5 focus:ring-1 focus:ring-primary"
+                    >
+                      <option value="ribbon">Faixa (Ribbon)</option>
+                      <option value="badge">Selo (Circular)</option>
+                      <option value="tag">Etiqueta (Tag)</option>
+                      <option value="neon">Brilho (Neon)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold uppercase text-gray-400">Tamanho dos Selos (Etiquetas)</span>
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{Math.round((state.layout?.stickerScale || 1.0) * 100)}%</span>
+                  </div>
+                  <input
+                    type="range" min="0.5" max="2.0" step="0.05"
+                    value={state.layout?.stickerScale || 1.0}
+                    onChange={(e) => onUpdateState({
+                      layout: { ...state.layout, stickerScale: parseFloat(e.target.value) }
+                    })}
+                    className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-primary"
+                  />
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                  <span className="material-icons-round text-sm">tune</span>
+                  Ajustes Finos (Controle Total)
+                </h3>
+                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 space-y-4">
+                  {/* Foto Margin */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] font-bold uppercase text-gray-400">Margem da Foto</span>
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{state.layout?.imagePadding ?? 1.5}</span>
+                    </div>
+                    <input
+                      type="range" min="0" max="6" step="0.25"
+                      value={state.layout?.imagePadding ?? 1.5}
+                      onChange={(e) => onUpdateState({
+                        layout: { ...state.layout, imagePadding: parseFloat(e.target.value) }
+                      })}
+                      className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-primary"
+                    />
+                  </div>
+
+                  {/* Text Margin */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] font-bold uppercase text-gray-400">Margem do Texto</span>
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{state.layout?.contentPadding ?? 2}</span>
+                    </div>
+                    <input
+                      type="range" min="0" max="6" step="0.25"
+                      value={state.layout?.contentPadding ?? 2}
+                      onChange={(e) => onUpdateState({
+                        layout: { ...state.layout, contentPadding: parseFloat(e.target.value) }
+                      })}
+                      className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-primary"
+                    />
+                  </div>
+
+                  {/* Arredondamento */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] font-bold uppercase text-gray-400">Arredondamento</span>
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{state.layout?.borderRadius || 12}px</span>
+                    </div>
+                    <input
+                      type="range" min="0" max="40" step="2"
+                      value={state.layout?.borderRadius || 12}
+                      onChange={(e) => onUpdateState({
+                        layout: { ...state.layout, borderRadius: parseInt(e.target.value) }
+                      })}
+                      className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-primary"
+                    />
+                  </div>
+
+                  {/* Shadow */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] font-bold uppercase text-gray-400">Intensidade da Sombra</span>
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{Math.round((state.layout?.shadowIntensity || 0.1) * 100)}%</span>
+                    </div>
+                    <input
+                      type="range" min="0" max="0.5" step="0.05"
+                      value={state.layout?.shadowIntensity || 0.1}
+                      onChange={(e) => onUpdateState({
+                        layout: { ...state.layout, shadowIntensity: parseFloat(e.target.value) }
+                      })}
+                      className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-primary"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                  <span className="material-icons-round text-sm">texture</span>
+                  Textura de Fundo
+                </h3>
+                <div className="grid grid-cols-3 gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                  {[
+                    { id: 'none', label: 'Nenhuma', icon: 'block' },
+                    { id: 'kraft', label: 'Kraft', icon: 'description' },
+                    { id: 'marble', label: 'Mármore', icon: 'texture' },
+                    { id: 'wood', label: 'Madeira', icon: 'reorder' },
+                    { id: 'noise', label: 'Ruído', icon: 'grain' },
+                    { id: 'grid', label: 'Grid', icon: 'grid_4x4' }
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => onUpdateState({ backgroundTexture: t.id as any })}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all border ${state.backgroundTexture === t.id || (!state.backgroundTexture && t.id === 'none')
+                        ? 'bg-primary/10 border-primary text-primary shadow-sm'
+                        : 'bg-white dark:bg-gray-900 border-transparent text-gray-400 hover:bg-gray-50'
+                        }`}
+                    >
+                      <span className="material-icons-round text-lg">{t.icon}</span>
+                      <span className="text-[8px] font-bold uppercase whitespace-nowrap">{t.label}</span>
+                    </button>
+                  ))}
                 </div>
               </section>
 
@@ -416,6 +730,7 @@ export const Controls: React.FC<ControlsProps> = ({
                     { id: 'price', label: 'Preço' },
                     { id: 'unit', label: 'Unidade' },
                     { id: 'productDetails', label: 'Detalhes' },
+                    { id: 'sticker', label: 'Selo' },
                   ].map(target => (
                     <button
                       key={target.id}
@@ -634,6 +949,20 @@ export const Controls: React.FC<ControlsProps> = ({
                   Rodapé
                 </h2>
 
+                {/* Footer Visibility Toggle */}
+                <div className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg mb-3">
+                  <span className="text-xs font-medium">Mostrar Rodapé</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={state.footer.showFooter !== false}
+                      onChange={(e) => onUpdateState({ footer: { ...state.footer, showFooter: e.target.checked } })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
+
                 {/* Contato */}
                 <div className="space-y-2">
                   <div>
@@ -664,6 +993,40 @@ export const Controls: React.FC<ControlsProps> = ({
                       />
                     </div>
                   ))}
+                </div>
+
+                {/* QR Code Inteligente */}
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
+                  <div className="flex items-center justify-between p-2.5 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-900/20">
+                    <div className="flex items-center gap-2">
+                      <span className="material-icons-round text-green-600 text-lg">qr_code_2</span>
+                      <div>
+                        <p className="text-xs font-black text-green-800 dark:text-green-300 uppercase leading-none">QR Code Inteligente</p>
+                        <p className="text-[9px] text-green-600/70 font-bold uppercase mt-1">Link direto para WhatsApp</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={state.footer.showQrCode}
+                        onChange={(e) => onUpdateState({ footer: { ...state.footer, showQrCode: e.target.checked } })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-green-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                    </label>
+                  </div>
+
+                  {state.footer.showQrCode && (
+                    <div className="space-y-2 animate-in slide-in-from-top-2">
+                      <label className="block text-[10px] font-bold uppercase text-gray-400">Mensagem do WhatsApp</label>
+                      <textarea
+                        value={state.footer.qrCodeText || ''}
+                        onChange={(e) => onUpdateState({ footer: { ...state.footer, qrCodeText: e.target.value } })}
+                        className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-colors h-16 resize-none"
+                        placeholder="Olá! Vi o encarte e gostaria de fazer um pedido."
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Arte Pronta Rodapé */}
@@ -718,13 +1081,7 @@ export const Controls: React.FC<ControlsProps> = ({
                 >
                   <span className="material-icons-round text-base">cloud_sync</span> Importar
                 </button>
-                <button
-                  onClick={() => setProductTab('list')}
-                  className={`flex-1 text-center py-2.5 text-xs font-bold uppercase tracking-wide border-b-2 transition-all flex items-center justify-center gap-1 ${productTab === 'list' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
-                    }`}
-                >
-                  <span className="material-icons-round text-base">format_list_bulleted</span> Lista ({state.products.length})
-                </button>
+
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
@@ -934,16 +1291,7 @@ export const Controls: React.FC<ControlsProps> = ({
                   </div>
                 )}
 
-                {productTab === 'list' && (
-                  <div className="space-y-2">
-                    <ProductList
-                      products={state.products}
-                      onUpdate={(id, updates) => onUpdateProduct(id, updates)}
-                      onRemove={onRemoveProduct}
-                      onReorder={(reorderedProducts) => onUpdateState({ products: reorderedProducts })}
-                    />
-                  </div>
-                )}
+
               </div>
             </div>
           )
@@ -983,6 +1331,7 @@ export const Controls: React.FC<ControlsProps> = ({
         }}
         searchQuery={newProduct.name || ''}
       />
+
     </aside >
   );
 };

@@ -8,7 +8,7 @@ import { useToast } from '../contexts/ToastContext';
 interface LoadLayoutModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onLoad: (state: AppState) => void;
+    onLoad: (state: AppState, id?: string) => void;
 }
 
 export const LoadLayoutModal: React.FC<LoadLayoutModalProps> = ({ isOpen, onClose, onLoad }) => {
@@ -40,7 +40,7 @@ export const LoadLayoutModal: React.FC<LoadLayoutModalProps> = ({ isOpen, onClos
 
     const handleSelect = (layout: any) => {
         if (confirm(`Deseja carregar o layout "${layout.name}"? As alterações não salvas serão perdidas.`)) {
-            onLoad(layout.state);
+            onLoad(layout.state, layout.id);
             onClose();
             showToast('success', 'Layout carregado com sucesso!');
         }

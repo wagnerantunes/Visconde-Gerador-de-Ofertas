@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragDefaults,
+  DragOverlay,
+  DragStartEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { ProductCard } from './components/ProductCard';
 import { Controls } from './components/Controls';
 import { ExportModal } from './components/ExportModal';
 import { FlyerPreview } from './components/FlyerPreview';
@@ -26,6 +43,7 @@ import { ShortcutBadge } from './components/ShortcutBadge';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthModal } from './components/auth/AuthModal';
 import { LoadLayoutModal } from './components/LoadLayoutModal';
+import { ProductListModal } from './components/ProductListModal';
 
 const AppContent: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -51,12 +69,22 @@ const AppContent: React.FC = () => {
   const { user, signOut } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
+  const [isManageListOpen, setIsManageListOpen] = useState(false);
+
   /* State Initialization with safe defaults */
   const defaultState: AppState = useMemo(() => ({
-    paperSize: 'a4',
+    paperSize: 'feed',
     orientation: 'portrait',
     pages: [{ id: 'page-1' }],
-    layout: { cardHeight: 280, rowGap: 16, cardStyle: 'classic' },
+    layout: {
+      cardHeight: 280,
+      rowGap: 16,
+      cardStyle: 'classic',
+      priceStyle: 'star',
+      stickerStyle: 'ribbon',
+      borderRadius: 12,
+      shadowIntensity: 0.1
+    },
     fonts: {
       headerTitle: { family: 'Bebas Neue', scale: 1 },
       headerSubtitle: { family: 'Roboto', scale: 1 },
@@ -64,7 +92,8 @@ const AppContent: React.FC = () => {
       productName: { family: 'Roboto', scale: 1 },
       productDetails: { family: 'Roboto', scale: 1 },
       price: { family: 'Bebas Neue', scale: 1 },
-      unit: { family: 'Roboto', scale: 1 }
+      unit: { family: 'Roboto', scale: 1 },
+      sticker: { family: 'Lilita One', scale: 1.1 }
     },
     columns: 3,
     autoRows: true,
@@ -73,7 +102,29 @@ const AppContent: React.FC = () => {
     validUntil: '10/12/2025',
     seasonal: SEASONAL_THEMES.semana,
     header: DEFAULT_HEADER,
-    footer: DEFAULT_FOOTER
+    footer: DEFAULT_FOOTER,
+    secondarySettings: {
+      layout: {
+        cardHeight: 280,
+        rowGap: 16,
+        cardStyle: 'classic',
+        priceStyle: 'star',
+        stickerStyle: 'ribbon',
+        borderRadius: 12,
+        shadowIntensity: 0.1
+      },
+      columns: 1,
+      fonts: {
+        headerTitle: { family: 'Bebas Neue', scale: 1 },
+        headerSubtitle: { family: 'Roboto', scale: 1 },
+        storeName: { family: 'Roboto', scale: 1 },
+        productName: { family: 'Roboto', scale: 1 },
+        productDetails: { family: 'Roboto', scale: 1 },
+        price: { family: 'Bebas Neue', scale: 1 },
+        unit: { family: 'Roboto', scale: 1 },
+        sticker: { family: 'Lilita One', scale: 1.1 }
+      }
+    }
   }), []);
 
   const initialAppState: AppState = useMemo(() => {
@@ -83,7 +134,17 @@ const AppContent: React.FC = () => {
         ...defaultState,
         ...saved,
         // Ensure critical nested objects are merged, not just replaced
-        layout: { ...defaultState.layout, ...(saved.layout || {}) },
+        layout: {
+          cardHeight: 280,
+          rowGap: 16,
+          cardStyle: 'classic',
+          priceStyle: 'star',
+          stickerStyle: 'ribbon',
+          stickerScale: 1.0,
+          borderRadius: 12,
+          shadowIntensity: 0.1,
+          ...(saved.layout || {})
+        },
         fonts: { ...defaultState.fonts, ...(saved.fonts || {}) },
         header: { ...defaultState.header, ...(saved.header || {}) },
         footer: { ...defaultState.footer, ...(saved.footer || {}) },
@@ -91,6 +152,62 @@ const AppContent: React.FC = () => {
     }
     return defaultState;
   }, [defaultState]);
+
+  const [currentLayoutId, setCurrentLayoutId] = useState<string | null>(null);
+  const [activeEditContext, setActiveEditContext] = useState<'feed' | 'story'>('feed');
+
+  // Reset context when paperSize changes away from feed-story
+
+
+  const [isViewerMode, setIsViewerMode] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // Cart State for Web Flyer
+  const [cart, setCart] = useState<{ id: string; quantity: number }[]>([]);
+
+  const handleAddToCart = (productId: string) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === productId);
+      if (existing) {
+        return prev.map(item => item.id === productId ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { id: productId, quantity: 1 }];
+    });
+  };
+
+  const handleRemoveFromCart = (productId: string) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === productId);
+      if (existing && existing.quantity > 1) {
+        return prev.map(item => item.id === productId ? { ...item, quantity: item.quantity - 1 } : item);
+      }
+      return prev.filter(item => item.id !== productId);
+    });
+  };
+
+  const clearCart = () => setCart([]);
+
+  // Check for View Mode
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const viewId = params.get('view');
+
+    if (viewId) {
+      import('./services/layoutService').then(({ getLayoutById }) => {
+        getLayoutById(viewId).then(layout => {
+          if (layout && layout.state) {
+            pushAppState(layout.state);
+            setCurrentLayoutId(viewId);
+            setIsViewerMode(true);
+          }
+          setIsInitialLoading(false);
+        }).catch(() => setIsInitialLoading(false));
+      });
+    } else {
+      setIsInitialLoading(false);
+    }
+  }, []);
 
   const {
     state,
@@ -101,6 +218,13 @@ const AppContent: React.FC = () => {
     canUndo,
     canRedo
   } = useHistory<AppState>(initialAppState);
+
+  const handleShare = () => {
+    if (!currentLayoutId) return;
+    const url = `${window.location.origin}${window.location.pathname}?view=${currentLayoutId}`;
+    navigator.clipboard.writeText(url);
+    showToast('Link do panfleto interativo copiado!', 'success');
+  };
 
   const historyDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -117,6 +241,15 @@ const AppContent: React.FC = () => {
 
   // Auto-save with debounce
   const debouncedState = useDebounce(state, 1000);
+
+  // Reset context when paperSize changes away from feed-story
+  useEffect(() => {
+    if (state.paperSize !== 'feed-story') setActiveEditContext('feed');
+  }, [state.paperSize]);
+
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+
   useEffect(() => {
     setIsSaving(true);
     const timer = setTimeout(() => {
@@ -166,9 +299,11 @@ const AppContent: React.FC = () => {
         setLastSaved(new Date());
 
         if (result.success) {
+          if (result.id) setCurrentLayoutId(result.id);
           showToast('success', user ? 'Salvo na nuvem!' : 'Salvo localmente!');
         } else {
-          showToast('error', 'Erro ao salvar.');
+          showToast('error', `Erro ao salvar: ${result.error?.message || 'Erro desconhecido'}`);
+          console.error('Save error details:', result.error);
         }
       }, description: 'Salvar'
     },
@@ -196,17 +331,61 @@ const AppContent: React.FC = () => {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string);
+  };
+
+  const handleDragCancel = () => {
+    setActiveDragId(null);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (active.id !== over?.id) {
+    setActiveDragId(null);
+
+    if (!over) return;
+
+    // Normalize IDs (remove -story suffix if present)
+    const activeId = String(active.id).replace('-story', '');
+    const overId = String(over.id).replace('-story', '');
+
+    if (activeId !== overId) {
       setAppState(prev => {
-        const oldIndex = prev.products.findIndex(p => p.id === active.id);
-        const newIndex = prev.products.findIndex(p => p.id === over?.id);
+        const oldIndex = prev.products.findIndex(p => p.id === activeId);
+        const newIndex = prev.products.findIndex(p => p.id === overId);
+
+        // Guard against not found (-1)
+        if (oldIndex === -1 || newIndex === -1) return prev;
+
         const newProducts = arrayMove(prev.products, oldIndex, newIndex);
         return { ...prev, products: newProducts };
       });
     }
   };
+
+  // Improved Fullscreen Handler
+  const toggleFullscreen = () => {
+    if (isFullscreen) {
+      setIsFullscreen(false);
+      try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { }
+    } else {
+      setIsFullscreen(true);
+      // Optional: try native fullscreen
+      try {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+      } catch (e) { }
+    }
+  };
+
+  // Sync state with native fullscreen changes
+  useEffect(() => {
+    const handleFsChange = () => {
+      if (!document.fullscreenElement) setIsFullscreen(false);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
     setAppState(prev => ({
@@ -230,6 +409,155 @@ const AppContent: React.FC = () => {
     }));
     showToast('error', 'Produto removido');
   };
+
+  if (isInitialLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-gray-950">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs animate-pulse">Carregando Ofertas...</p>
+      </div>
+    );
+  }
+
+  if (isViewerMode) {
+    const cartItemsData = cart.map(item => {
+      const product = state.products.find(p => p.id === item.id);
+      return { ...product, quantity: item.quantity };
+    }).filter(p => p.name);
+
+    const cartTotal = cartItemsData.reduce((acc, item) => acc + ((Number(item.price) || 0) * item.quantity), 0);
+
+    const handleCheckout = () => {
+      const dateStr = new Date().toLocaleDateString('pt-BR');
+      let message = `*📦 NOVO PEDIDO - ${dateStr}*\n`;
+      message += `--------------------------\n`;
+
+      cartItemsData.forEach(item => {
+        message += `*${item.quantity}x* ${item.name} - R$ ${((Number(item.price) || 0) * item.quantity).toFixed(2)}\n`;
+      });
+
+      message += `--------------------------\n`;
+      message += `*TOTAL: R$ ${cartTotal.toFixed(2)}*\n`;
+      message += `--------------------------\n`;
+      message += `_Vi essas ofertas no seu panfleto digital!_`;
+
+      const phone = state.footer.socialLinks.whatsapp || state.footer.phone || '';
+      const cleanPhone = phone.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 overflow-auto selection:bg-primary/20">
+        <div className="fixed top-4 left-4 z-50">
+          <button
+            onClick={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.delete('view');
+              window.history.replaceState({}, '', url.toString());
+              setIsViewerMode(false);
+            }}
+            className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-gray-200 hover:bg-white transition-all text-xs font-black text-gray-700 uppercase"
+          >
+            <span className="material-icons-round text-primary">edit</span>
+            Editar Panfleto
+          </button>
+        </div>
+
+        {/* Floating Cart Button */}
+        <button
+          onClick={() => setIsCartOpen(true)}
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 ${cart.length > 0 ? 'bg-primary text-white' : 'bg-gray-400 text-white opacity-50 pointer-events-none'}`}
+        >
+          <div className="relative">
+            <span className="material-icons-round text-2xl">shopping_basket</span>
+            {cart.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-white text-primary text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-md">
+                {cart.reduce((acc, i) => acc + i.quantity, 0)}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-col items-start leading-none">
+            <span className="text-[10px] font-black uppercase opacity-80">Seu Pedido</span>
+            <span className="text-lg font-black">R$ {cartTotal.toFixed(2)}</span>
+          </div>
+        </button>
+
+        {/* Cart Drawer Overlay */}
+        {isCartOpen && (
+          <div className="fixed inset-0 z-[60] flex justify-end">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
+            <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-primary text-white">
+                <div className="flex items-center gap-3">
+                  <span className="material-icons-round">shopping_cart</span>
+                  <h2 className="font-black uppercase tracking-widest leading-none">Minha Cesta</h2>
+                </div>
+                <button onClick={() => setIsCartOpen(false)} className="hover:rotate-90 transition-transform">
+                  <span className="material-icons-round">close</span>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-auto p-6 space-y-4">
+                {cartItemsData.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
+                    <span className="material-icons-round text-6xl mb-4">add_shopping_cart</span>
+                    <p className="font-black uppercase text-sm">Sua cesta está vazia</p>
+                    <p className="text-xs font-bold">Adicione produtos do panfleto</p>
+                  </div>
+                ) : (
+                  cartItemsData.map((item) => (
+                    <div key={item.id} className="flex gap-4 items-center p-3 bg-gray-50 rounded-2xl border border-gray-100 group">
+                      <div className="w-16 h-16 bg-white rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+                        <img src={item.image} alt={item.name} className="w-full h-full object-contain p-2" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-black uppercase text-[11px] leading-tight line-clamp-2">{item.name}</h4>
+                        <p className="text-primary font-black text-xs">R$ {item.price}</p>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-xl shadow-sm border border-gray-100">
+                        <button onClick={() => handleRemoveFromCart(item.id)} className="text-gray-400 hover:text-red-500 transition-colors">
+                          <span className="material-icons-round text-sm">remove</span>
+                        </button>
+                        <span className="font-black text-xs w-6 text-center">{item.quantity}</span>
+                        <button onClick={() => handleAddToCart(item.id!)} className="text-gray-400 hover:text-primary transition-colors">
+                          <span className="material-icons-round text-sm">add</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {cartItemsData.length > 0 && (
+                <div className="p-8 border-t border-gray-100 bg-gray-50/50 space-y-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Total Estimado</span>
+                    <span className="text-3xl font-black text-primary">R$ {cartTotal.toFixed(2)}</span>
+                  </div>
+                  <button
+                    onClick={handleCheckout}
+                    className="w-full py-5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-[#25D366]/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                  >
+                    <span className="material-icons-round">message</span>
+                    Pedir via WhatsApp
+                  </button>
+                  <button onClick={clearCart} className="w-full py-2 text-[9px] font-black text-gray-400 uppercase hover:text-red-500 transition-colors">
+                    Limpar Cesta
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <FlyerPreview state={state} onAddToCart={handleAddToCart} isViewerMode={isViewerMode} />
+        <div className="mt-8 text-center text-gray-400 text-[10px] font-bold uppercase tracking-widest">
+          Gerado por Visconde • {new Date().getFullYear()}
+        </div>
+      </div>
+    );
+  }
 
   if (!state) {
     return (
@@ -277,7 +605,8 @@ const AppContent: React.FC = () => {
               if (result.success) {
                 showToast('success', user ? 'Salvo na nuvem!' : 'Salvo localmente!');
               } else {
-                showToast('error', 'Erro ao salvar.');
+                showToast('error', `Erro ao salvar: ${result.error?.message || 'Erro desconhecido'}`);
+                console.error('Save error details:', result.error);
               }
             }}
             className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -286,45 +615,98 @@ const AppContent: React.FC = () => {
             <span className="material-icons-round text-[18px]">{user ? "cloud_upload" : "save"}</span>
           </button>
 
+          <button
+            onClick={() => {
+              if (window.confirm('⚠️ Tem certeza que deseja limpar tudo?\n\nTodos os produtos e configurações atuais serão perdidos e não poderão ser recuperados.')) {
+                const { clearSessionStorage } = require('./utils');
+                clearSessionStorage();
+                showToast('success', 'Sessão limpa! Recarregando...');
+                setTimeout(() => {
+                  window.location.reload();
+                }, 500);
+              }
+            }}
+            className="p-1.5 rounded-lg text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Limpar tudo e começar nova sessão"
+          >
+            <span className="material-icons-round text-[18px]">restart_alt</span>
+          </button>
+
           {/* Paper Size */}
           <div className="relative group">
             <button className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-[10px] font-bold uppercase transition-colors text-gray-600 dark:text-gray-300">
-              {state.paperSize.toUpperCase()}
+              {state.paperSize === 'feed-story' ? 'FEED + STORY' : state.paperSize.toUpperCase()}
               <span className="material-icons-round text-[12px]">expand_more</span>
             </button>
-            <div className="absolute top-full right-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden hidden group-hover:block z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="p-1.5 grid gap-0.5">
-                {['a4', 'a3', 'letter', 'story', 'feed'].map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setAppState({ ...state, paperSize: size as any })}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-md text-[10px] font-bold uppercase flex justify-between items-center ${state.paperSize === size
-                      ? 'bg-primary/10 text-primary'
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'
-                      }`}
-                  >
-                    {size}
-                    {state.paperSize === size && <span className="material-icons-round text-[12px]">check</span>}
-                  </button>
-                ))}
-                <div className="h-px bg-gray-200 dark:bg-gray-700 my-0.5" />
-                <div className="flex gap-0.5">
-                  <button
-                    onClick={() => setAppState({ ...state, orientation: 'portrait' })}
-                    className={`flex-1 flex items-center justify-center gap-0.5 py-1 rounded-md text-[9px] font-bold uppercase ${state.orientation === 'portrait' ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'}`}
-                  >
-                    <span className="material-icons-round text-[12px]">crop_portrait</span>
-                  </button>
-                  <button
-                    onClick={() => setAppState({ ...state, orientation: 'landscape' })}
-                    className={`flex-1 flex items-center justify-center gap-0.5 py-1 rounded-md text-[9px] font-bold uppercase ${state.orientation === 'landscape' ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'}`}
-                  >
-                    <span className="material-icons-round text-[12px]">crop_landscape</span>
-                  </button>
+            {/* Fix: Added invisible bridge (pb-2) and removed margin to prevent closing on hover */}
+            <div className="absolute top-full right-0 pt-2 w-40 hidden group-hover:block z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="p-1.5 grid gap-0.5">
+                  {[
+                    { id: 'feed', label: 'Feed (Post)' },
+                    { id: 'story', label: 'Story (Tela Cheia)' },
+                    { id: 'feed-story', label: 'Feed + Story (Misto)' },
+                    { id: 'tabloid', label: 'Tablóide (11x17")' },
+                    { id: 'a4', label: 'Papel A4' },
+                    { id: 'a3', label: 'Papel A3' }
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setAppState({ ...state, paperSize: opt.id as any })}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-md text-[10px] font-bold uppercase flex justify-between items-center ${state.paperSize === opt.id
+                        ? 'bg-primary/10 text-primary'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'
+                        }`}
+                    >
+                      {opt.label}
+                      {state.paperSize === opt.id && <span className="material-icons-round text-[12px]">check</span>}
+                    </button>
+                  ))}
+                  <div className="h-px bg-gray-200 dark:bg-gray-700 my-0.5" />
+                  <div className="flex gap-0.5">
+                    <button
+                      onClick={() => setAppState({ ...state, orientation: 'portrait' })}
+                      className={`flex-1 flex items-center justify-center gap-0.5 py-1 rounded-md text-[9px] font-bold uppercase ${state.orientation === 'portrait' ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'}`}
+                    >
+                      <span className="material-icons-round text-[12px]">crop_portrait</span>
+                    </button>
+                    <button
+                      onClick={() => setAppState({ ...state, orientation: 'landscape' })}
+                      className={`flex-1 flex items-center justify-center gap-0.5 py-1 rounded-md text-[9px] font-bold uppercase ${state.orientation === 'landscape' ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'}`}
+                    >
+                      <span className="material-icons-round text-[12px]">crop_landscape</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Feed/Story Context Switcher */}
+          {state.paperSize === 'feed-story' && (
+            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 ml-2 border border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setActiveEditContext('feed')}
+                className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all flex items-center gap-1 ${activeEditContext === 'feed'
+                  ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+              >
+                <span className="material-icons-round text-[12px]">view_agenda</span>
+                Feed
+              </button>
+              <button
+                onClick={() => setActiveEditContext('story')}
+                className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all flex items-center gap-1 ${activeEditContext === 'story'
+                  ? 'bg-white dark:bg-gray-700 text-purple-500 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+              >
+                <span className="material-icons-round text-[12px]">amp_stories</span>
+                Story
+              </button>
+            </div>
+          )}
 
           {/* Zoom - Compact */}
           <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg px-1">
@@ -362,19 +744,65 @@ const AppContent: React.FC = () => {
           {/* Controls - Fixed Left */}
           <div className="w-[450px] min-w-[450px] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 h-full overflow-y-auto shadow-xl z-20">
             <Controls
-              state={state}
-              onUpdateState={(updates) => setAppState(prev => ({ ...prev, ...updates }))}
+              state={state.paperSize === 'feed-story' && activeEditContext === 'story' ? {
+                ...state,
+                layout: state.secondarySettings?.layout || state.layout,
+                columns: state.secondarySettings?.columns || state.columns,
+                fonts: state.secondarySettings?.fonts || state.fonts,
+              } : state}
+              onUpdateState={(updates) => {
+                if (state.paperSize === 'feed-story' && activeEditContext === 'story') {
+                  setAppState(prev => {
+                    // Ensure secondarySettings object exists
+                    const currentSecondary = prev.secondarySettings || {
+                      layout: prev.layout,
+                      columns: prev.columns,
+                      fonts: prev.fonts
+                    };
+
+                    return {
+                      ...prev,
+                      secondarySettings: {
+                        ...currentSecondary,
+                        layout: updates.layout ? { ...currentSecondary.layout, ...updates.layout } : currentSecondary.layout,
+                        columns: updates.columns ?? currentSecondary.columns,
+                        fonts: updates.fonts ? { ...currentSecondary.fonts, ...updates.fonts } : currentSecondary.fonts,
+                      }
+                    };
+                  });
+                } else {
+                  setAppState(prev => ({ ...prev, ...updates }));
+                }
+              }}
               onUpdateProduct={updateProduct}
               onAddProduct={addProduct}
               onRemoveProduct={removeProduct}
+              onOpenManageList={() => setIsManageListOpen(true)}
             />
           </div>
 
           {/* Preview Area */}
-          <div className={`flex-1 bg-gray-100 dark:bg-gray-950 overflow-auto flex flex-col items-center p-8 scroll-smooth relative ${isFullscreen ? 'fixed inset-0 z-50' : ''
+          <div className={`flex-1 bg-gray-100 dark:bg-gray-950 overflow-auto flex flex-col items-center p-8 scroll-smooth relative ${isFullscreen ? 'fixed inset-0 z-[100] !p-0 !bg-gray-950' : ''
             }`}>
+            {/* Rulers Overlay */}
+            {showRulers && (
+              <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+                {/* Horizontal Ruler */}
+                <div className="absolute top-0 left-0 right-0 h-4 bg-white/10 border-b border-primary/20 flex items-end">
+                  {Array.from({ length: 100 }).map((_, i) => (
+                    <div key={i} className={`shrink-0 border-l border-primary/20 ${i % 10 === 0 ? 'h-full' : (i % 5 === 0 ? 'h-2/3' : 'h-1/3')}`} style={{ width: '20px' }} />
+                  ))}
+                </div>
+                {/* Vertical Ruler */}
+                <div className="absolute top-0 left-0 bottom-0 w-4 bg-white/10 border-r border-primary/20 flex flex-col items-end">
+                  {Array.from({ length: 100 }).map((_, i) => (
+                    <div key={i} className={`shrink-0 border-t border-primary/20 ${i % 10 === 0 ? 'w-full' : (i % 5 === 0 ? 'w-2/3' : 'w-1/3')}`} style={{ height: '20px' }} />
+                  ))}
+                </div>
+              </div>
+            )}
             <PreviewControls
-              onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+              onToggleFullscreen={toggleFullscreen}
               onToggleGrid={() => setShowGrid(!showGrid)}
               onToggleRulers={() => setShowRulers(!showRulers)}
               isFullscreen={isFullscreen}
@@ -393,9 +821,34 @@ const AppContent: React.FC = () => {
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
             >
-              <FlyerPreview state={state} />
+              <FlyerPreview
+                state={state}
+                onAddToCart={handleAddToCart}
+                onEditProduct={(id) => {
+                  setEditingProductId(id);
+                  setIsManageListOpen(true);
+                }}
+                isViewerMode={isViewerMode}
+              />
+              <DragOverlay>
+                {activeDragId ? (
+                  <div style={{ transform: 'scale(0.9)', opacity: 0.9 }}>
+                    <ProductCard
+                      product={state.products.find(p => p.id === activeDragId!.replace('-story', ''))!}
+                      primaryColor={state.seasonal.primaryColor}
+                      secondaryColor={state.seasonal.secondaryColor}
+                      fonts={state.fonts}
+                      layout={state.layout} // Use current layout context? Or default? Using default for drag preview is safer/easier
+                      style={{ width: '100%', height: '100%' }}
+                      isViewerMode={true} // cleaner look for drag
+                    />
+                  </div>
+                ) : null}
+              </DragOverlay>
             </DndContext>
           </div>
         </div>
@@ -435,7 +888,24 @@ const AppContent: React.FC = () => {
         <LoadLayoutModal
           isOpen={isLoadLayoutModalOpen}
           onClose={() => setIsLoadLayoutModalOpen(false)}
-          onLoad={(newState) => setAppState(newState)}
+          onLoad={(newState, id) => {
+            setAppState(newState);
+            if (id) setCurrentLayoutId(id);
+          }}
+        />
+
+        <ProductListModal
+          isOpen={isManageListOpen}
+          initialEditingId={editingProductId}
+          onClose={() => {
+            setIsManageListOpen(false);
+            setEditingProductId(null);
+          }}
+          products={state.products}
+          onUpdateProduct={updateProduct}
+          onRemoveProduct={removeProduct}
+          onReorderProducts={(newProducts) => setAppState(prev => ({ ...prev, products: newProducts }))}
+          onClearAll={() => setAppState(prev => ({ ...prev, products: [] }))}
         />
 
         <AIStudio
@@ -449,6 +919,8 @@ const AppContent: React.FC = () => {
           productCount={state.products.length}
           isSaving={isSaving}
           lastSaved={lastSaved}
+          onShare={handleShare}
+          hasLayoutId={!!currentLayoutId}
         />
       </div>
     </NotificationProvider>

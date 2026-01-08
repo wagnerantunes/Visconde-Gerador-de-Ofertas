@@ -84,6 +84,7 @@ export const DEFAULT_HEADER = {
 };
 
 export const DEFAULT_FOOTER = {
+    showFooter: true,
     addresses: [
         'Rua Manoel José Pedro, 96 - Campinas',
         'Av. Benjamin Constant, 1015 - Campinas'
