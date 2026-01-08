@@ -70,6 +70,7 @@ const AppContent: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const [isManageListOpen, setIsManageListOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   /* State Initialization with safe defaults */
   const defaultState: AppState = useMemo(() => ({
@@ -740,9 +741,17 @@ const AppContent: React.FC = () => {
           </button>
         </div>
 
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="fixed top-3 left-3 z-50 p-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 md:hidden"
+        >
+          <span className="material-icons-round text-gray-700 dark:text-white">menu</span>
+        </button>
+
         <div className="flex h-screen overflow-hidden pt-20">
-          {/* Controls - Fixed Left */}
-          <div className="w-[450px] min-w-[450px] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 h-full overflow-y-auto shadow-xl z-20">
+          {/* Controls - Responsive Wrapper */}
+          <div className="md:w-[450px] md:min-w-[450px] h-full z-20 transition-all duration-300">
             <Controls
               state={state.paperSize === 'feed-story' && activeEditContext === 'story' ? {
                 ...state,
@@ -777,7 +786,10 @@ const AppContent: React.FC = () => {
               onUpdateProduct={updateProduct}
               onAddProduct={addProduct}
               onRemoveProduct={removeProduct}
+              onRemoveProduct={removeProduct}
               onOpenManageList={() => setIsManageListOpen(true)}
+              isOpen={isSidebarOpen}
+              onClose={() => setIsSidebarOpen(false)}
             />
           </div>
 

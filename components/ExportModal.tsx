@@ -129,7 +129,28 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
 
                     if (i > 0) pdf.addPage();
                     pdf.addImage(imgData, 'JPEG', x, y, w, h);
+
+                    // --- Smart PDF: Adicionar Link de WhatsApp ---
+                    const phone = state.footer.socialLinks.whatsapp || state.footer.phone || '';
+                    if (phone) {
+                        const cleanPhone = phone.replace(/\D/g, '');
+                        const whatsappUrl = `https://wa.me/${cleanPhone}`;
+
+                        // Assumindo que o rodapé ocupa os últimos ~15% da altura da arte
+                        const footerH = h * 0.15;
+                        const footery = y + h - footerH;
+
+                        // Adiciona link invisível sobre a área do rodapé
+                        pdf.link(x, footery, w, footerH, { url: whatsappUrl });
+                    }
                 }
+
+                pdf.setProperties({
+                    title: `${baseFileName}`,
+                    subject: 'Panfleto de Ofertas',
+                    author: 'Gerador Visconde',
+                    creator: 'Visconde Digital'
+                });
 
                 pdf.save(`${baseFileName}.pdf`);
 
