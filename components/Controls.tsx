@@ -40,7 +40,228 @@ export const Controls: React.FC<ControlsProps> = ({
   const { user, signOut } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('tema');
-  // ... existing code ...
+  const [activeFontTarget, setActiveFontTarget] = useState<keyof typeof state.fonts>('price');
+  const [productTab, setProductTab] = useState<'single' | 'batch' | 'list' | 'import'>('single');
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [batchText, setBatchText] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMode, setSyncMode] = useState<'merge' | 'replace'>('merge');
+  const [tempScriptUrl, setTempScriptUrl] = useState(state.googleScriptUrl || 'https://script.google.com/macros/s/AKfycbzy6IUgIPzIYtz8DmOGHqNm4kque5kxGNz4daboARq4qfznaKTC5r1Q2vzX_-CyLsKK/exec');
+  const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const [newProduct, setNewProduct] = useState<Partial<Product>>({
+    name: '',
+    price: 0,
+    unit: 'KG',
+    isHighlight: false,
+    details: '',
+    image: ''
+  });
+
+  const handleAddProduct = async () => {
+    if (!newProduct.name || !newProduct.price) return;
+
+    onAddProduct({
+      id: Date.now().toString(),
+      name: newProduct.name,
+      price: newProduct.price,
+      unit: newProduct.unit || 'KG',
+      isHighlight: !!newProduct.isHighlight,
+      details: newProduct.details || '',
+      image: newProduct.image || findProductImage(newProduct.name || '')
+    });
+
+    setNewProduct({
+      name: '',
+      price: 0,
+      unit: 'KG',
+      isHighlight: false,
+      details: '',
+      image: ''
+    });
+  };
+
+  const handleBatchAdd = () => {
+    const products = parseProductList(batchText);
+
+    products.forEach(p => {
+      onAddProduct({
+        id: Date.now().toString() + Math.random(),
+        name: p.name,
+        price: p.price,
+        unit: p.unit,
+        isHighlight: false,
+        details: '',
+        image: findProductImage(p.name)
+      });
+    });
+
+    setBatchText('');
+    setProductTab('list');
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await imageToBase64(file);
+        setNewProduct({ ...newProduct, image: base64 });
+      } catch (error) {
+        console.error('Erro ao carregar imagem:', error);
+      }
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await imageToBase64(file);
+        onUpdateState({
+          header: { ...state.header, logoUrl: base64, showLogo: true }
+        });
+      } catch (error) {
+        console.error('Erro ao carregar logo:', error);
+      }
+    }
+  };
+
+  const handleHeaderImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await imageToBase64(file);
+        onUpdateState({ header: { ...state.header, customImage: base64 } });
+      } catch (error) { console.error('Erro header img', error); }
+    }
+  };
+
+  const handleFooterImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await imageToBase64(file);
+        onUpdateState({ footer: { ...state.footer, customImage: base64 } });
+      } catch (error) { console.error('Erro footer img', error); }
+    }
+  };
+
+  const handleSyncGoogleSheets = async () => {
+    setIsSyncing(true);
+    setSyncMessage(null);
+
+    // Save the URL to state if changed
+    if (tempScriptUrl !== state.googleScriptUrl) {
+      onUpdateState({ googleScriptUrl: tempScriptUrl });
+    }
+
+    try {
+      const response = await fetch(tempScriptUrl);
+
+      if (!response.ok) {
+        throw new Error('Erro ao conectar com o Google Sheets. Verifique a URL do Script.');
+      }
+
+      const data = await response.json();
+
+      if (!data.sucesso || !data.ofertas) {
+        throw new Error('Formato de dados inválido ou planilha vazia');
+      }
+
+      // Helper para buscar valor independente de maiúsculas/minúsculas
+      const getValue = (obj: any, candidates: string[]) => {
+        const keys = Object.keys(obj);
+        for (const candidate of candidates) {
+          const match = keys.find(k => k.trim().toLowerCase() === candidate.toLowerCase());
+          if (match && obj[match]) return obj[match];
+        }
+        return undefined;
+      };
+
+      // Mapear os dados do Google Sheets para o formato Product
+      const incomingProducts: Product[] = data.ofertas.map((oferta: any) => {
+        const name = getValue(oferta, ['produto', 'nome', 'name', 'item']) || '';
+        const price = getValue(oferta, ['preco', 'preço', 'price', 'valor']) || 0;
+        const rawUnit = getValue(oferta, ['unidade', 'un', 'medida', 'unit', 'obs', 'observacao', 'observação', 'complemento']);
+        const category = getValue(oferta, ['categoria', 'detalhes', 'cat']) || '';
+
+        return {
+          id: Date.now().toString() + Math.random(),
+          name: name,
+          price: price,
+          unit: rawUnit || 'KG',
+          isHighlight: false,
+          details: category,
+          image: findProductImage(name),
+          pageId: 'auto'
+        };
+      });
+
+      // Lógica de Sincronização Inteligente
+      let finalProducts: Product[] = [];
+
+      if (syncMode === 'replace') {
+        finalProducts = incomingProducts;
+      } else {
+        // Modo Merge: Atualizar itens existentes se o nome for igual, adicionar novos no fim
+        const normalizeName = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+        // 1. Atualiza os produtos que já estão no layout
+        finalProducts = state.products.map(current => {
+          const normCurrent = normalizeName(current.name);
+          const match = incomingProducts.find(incoming => normalizeName(incoming.name) === normCurrent);
+
+          if (match) {
+            // Se encontrou na planilha: Atualiza Preço, Unidade e Detalhes
+            // Mantém: ID, Destaque, Imagem (se já configurada), Posição
+            return {
+              ...current,
+              price: match.price,
+              unit: match.unit,
+              details: match.details || current.details,
+              image: (current.image && !current.image.includes('placeholder')) ? current.image : match.image
+            };
+          }
+          return current;
+        });
+
+        // 2. Adiciona produtos NOVOS da planilha que não estão no layout
+        const currentNames = new Set(state.products.map(p => normalizeName(p.name)));
+        const newProducts = incomingProducts.filter(incoming => !currentNames.has(normalizeName(incoming.name)));
+
+        finalProducts = [...finalProducts, ...newProducts];
+      }
+
+      onUpdateState({ products: finalProducts });
+
+      setSyncMessage({
+        type: 'success',
+        text: `${incomingProducts.length} produtos ${syncMode === 'replace' ? 'importados (lista substituída)' : 'adicionados'} com sucesso!`
+      });
+
+      setProductTab('list');
+      setTimeout(() => setSyncMessage(null), 5000);
+
+    } catch (error) {
+      console.error('Erro ao sincronizar:', error);
+      setSyncMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Erro ao sincronizar com Google Sheets'
+      });
+      setTimeout(() => setSyncMessage(null), 5000);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const tabs = [
+    { id: 'tema' as TabType, label: 'Tema', icon: 'palette' },
+    { id: 'design' as TabType, label: 'Design', icon: 'brush' },
+    { id: 'moldura' as TabType, label: 'Cabeçalho e Rodapé', icon: 'crop_free' },
+    { id: 'produtos' as TabType, label: 'Ofertas', icon: 'inventory_2' },
+    { id: 'lista' as TabType, label: 'Lista', icon: 'format_list_bulleted' }
+  ];
 
   return (
     <>
@@ -1138,6 +1359,7 @@ export const Controls: React.FC<ControlsProps> = ({
           searchQuery={newProduct.name || ''}
         />
 
-      </aside >
-      );
+      </aside>
+    </>
+  );
 };
