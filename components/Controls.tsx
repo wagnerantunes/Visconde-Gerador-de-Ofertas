@@ -1497,29 +1497,8 @@ export const Controls: React.FC<ControlsProps> = ({
           }
         </div>
 
-        {/* Sidebar Footer */}
-        <div className="p-4 border-t border-gray-200/50 dark:border-gray-800/50 bg-gray-50/50 dark:bg-black/20 backdrop-blur-sm">
-          {user ? (
-            <div className="flex items-center gap-3">
-              <img
-                src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email}`}
-                className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold truncate text-gray-900 dark:text-gray-100">{user.email}</p>
-                <button onClick={signOut} className="text-[10px] text-red-500 hover:text-red-600 font-medium flex items-center gap-1 mt-0.5">
-                  <span className="material-icons-round text-[10px]">logout</span> Sair
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button onClick={() => setIsAuthModalOpen(true)} className="w-full py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-sm">
-              <span className="material-icons-round text-base">login</span>
-              Fazer Login
-            </button>
-          )}
-          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-        </div>
+        {/* Sidebar Footer - Space for spacing if needed or just empty */}
+        <div className="h-4" />
 
         <ImageGalleryModal
           isOpen={isGalleryOpen}

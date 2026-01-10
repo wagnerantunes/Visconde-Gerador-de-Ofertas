@@ -818,6 +818,38 @@ const AppContent: React.FC = () => {
           {/* Preview Area */}
           <div className={`flex-1 bg-gray-100 dark:bg-gray-950 overflow-auto flex flex-col items-center p-8 scroll-smooth relative ${isFullscreen ? 'fixed inset-0 z-[100] !p-0 !bg-gray-950' : ''
             }`}>
+            {/* User Profile / Login - Top Right */}
+            <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+              {user ? (
+                <div className="flex items-center gap-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-1.5 pr-3 rounded-full shadow-lg border border-gray-200/50 dark:border-gray-700/50 group transition-all hover:pr-4">
+                  <img
+                    src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email}`}
+                    className="w-8 h-8 rounded-full border border-primary/20 shadow-sm"
+                    alt="Perfil"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-gray-900 dark:text-gray-100 truncate max-w-[100px] leading-tight">
+                      {user.email?.split('@')[0]}
+                    </span>
+                    <button
+                      onClick={signOut}
+                      className="text-[8px] text-red-500 hover:text-red-600 font-bold uppercase tracking-tighter text-left leading-none"
+                    >
+                      Sair
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-full shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all animate-slideInRight"
+                >
+                  <span className="material-icons-round text-lg">account_circle</span>
+                  <span className="text-[11px] font-black uppercase tracking-wider">Entrar</span>
+                </button>
+              )}
+            </div>
+
             {/* Rulers Overlay */}
             {showRulers && (
               <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
