@@ -3,7 +3,7 @@ import { AppState } from '../types';
 import { supabase } from '../lib/supabase';
 import { saveToLocalStorage } from '../utils';
 
-export const saveLayout = async (state: AppState, userId?: string, layoutName: string = 'Layout Atual') => {
+export const saveLayout = async (state: AppState, userId?: string, layoutName: string = 'Layout Atual', previewUrl?: string) => {
     // 1. Always save to LocalStorage for offline backup/speed
     saveToLocalStorage(state);
 
@@ -18,6 +18,7 @@ export const saveLayout = async (state: AppState, userId?: string, layoutName: s
                     user_id: userId,
                     name: layoutName,
                     state: state,
+                    preview_url: previewUrl,
                     updated_at: new Date().toISOString()
                 }, {
                     onConflict: 'user_id,name',
@@ -40,14 +41,24 @@ export const saveLayout = async (state: AppState, userId?: string, layoutName: s
                 if (existing) {
                     const { error: updateError } = await supabase
                         .from('layouts')
-                        .update({ state, updated_at: new Date().toISOString() })
+                        .update({
+                            state,
+                            preview_url: previewUrl,
+                            updated_at: new Date().toISOString()
+                        })
                         .eq('id', existing.id);
                     if (updateError) throw updateError;
                     return { success: true, id: existing.id };
                 } else {
                     const { data: inserted, error: insertError } = await supabase
                         .from('layouts')
-                        .insert({ user_id: userId, name: layoutName, state, updated_at: new Date().toISOString() })
+                        .insert({
+                            user_id: userId,
+                            name: layoutName,
+                            state,
+                            preview_url: previewUrl,
+                            updated_at: new Date().toISOString()
+                        })
                         .select('id')
                         .single();
                     if (insertError) throw insertError;

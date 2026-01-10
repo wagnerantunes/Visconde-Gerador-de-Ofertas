@@ -74,11 +74,11 @@ export const getAvailablePageHeight = (
     const isLandscape = orientation === 'landscape';
     const height = isLandscape ? baseSize.w : baseSize.h;
 
-    // Estimativas padronizadas para evitar erros de renderização
-    const headerHeight = headerCustom ? 200 : 160;
-    const footerHeight = footerCustom ? 200 : 120;
-    const verticalPadding = 0;
-    const safeMargin = 0;
+    // Calibração baseada nos componentes FlyerPreview (h-48 + h-12 = 240px)
+    const headerHeight = headerCustom ? 240 : 240;
+    const footerHeight = footerCustom ? 200 : 160;
+    const verticalPadding = 48; // Padding interno das páginas (p-6 cima/baixo)
+    const safeMargin = 10;
 
     return height - headerHeight - footerHeight - verticalPadding - safeMargin;
 };
@@ -89,8 +89,8 @@ export const paginateProducts = (
     itemHeight: number,
     columns: number
 ): Product[][] => {
-    // Dividers ocupam menos espaço (~80-100px vs 280px+), então usamos um fator de 0.35
-    const dividerHeightFactor = 0.35;
+    // Dividers ocupam menos espaço (~90px vs 280px+), então usamos um fator fixo
+    const dividerHeight = 90;
 
     const pages: Product[][] = [];
     let currentPage: Product[] = [];
@@ -104,7 +104,7 @@ export const paginateProducts = (
 
         // Calcula altura que este produto vai ocupar
         const productHeight = product.type === 'divider'
-            ? itemHeight * dividerHeightFactor
+            ? dividerHeight
             : itemHeight;
 
         // Check if we need to wrap to new row

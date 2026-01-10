@@ -39,7 +39,7 @@ export const Controls: React.FC<ControlsProps> = ({
 }) => {
   const { user, signOut } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('tema');
+  const [activeTab, setActiveTab] = useState<TabType>('produtos');
   const [activeFontTarget, setActiveFontTarget] = useState<keyof typeof state.fonts>('price');
   const [productTab, setProductTab] = useState<'single' | 'batch' | 'list' | 'import'>('single');
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -53,32 +53,56 @@ export const Controls: React.FC<ControlsProps> = ({
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
     price: 0,
+    originalPrice: undefined,
     unit: 'KG',
     isHighlight: false,
     details: '',
-    image: ''
+    image: '',
+    type: 'product',
+    stickerText: '',
+    stickerStyle: 'badge',
+    cardLayout: 'vertical',
+    cols: 1,
+    imageScale: 1,
+    dividerTheme: 'default'
   });
 
   const handleAddProduct = async () => {
-    if (!newProduct.name || !newProduct.price) return;
+    if (!newProduct.name || (newProduct.type !== 'divider' && !newProduct.price)) return;
 
     onAddProduct({
-      id: Date.now().toString(),
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
       name: newProduct.name,
-      price: newProduct.price,
+      price: newProduct.price || 0,
+      originalPrice: newProduct.originalPrice,
       unit: newProduct.unit || 'KG',
       isHighlight: !!newProduct.isHighlight,
       details: newProduct.details || '',
-      image: newProduct.image || findProductImage(newProduct.name || '')
+      image: newProduct.image || (newProduct.type === 'divider' ? '' : findProductImage(newProduct.name || '')),
+      type: newProduct.type || 'product',
+      stickerText: newProduct.stickerText,
+      stickerStyle: newProduct.stickerStyle,
+      cardLayout: newProduct.cardLayout,
+      cols: newProduct.cols,
+      imageScale: newProduct.imageScale,
+      dividerTheme: newProduct.dividerTheme
     });
 
     setNewProduct({
       name: '',
       price: 0,
+      originalPrice: undefined,
       unit: 'KG',
       isHighlight: false,
       details: '',
-      image: ''
+      image: '',
+      type: 'product',
+      stickerText: '',
+      stickerStyle: 'badge',
+      cardLayout: 'vertical',
+      cols: 1,
+      imageScale: 1,
+      dividerTheme: 'default'
     });
   };
 
@@ -256,10 +280,10 @@ export const Controls: React.FC<ControlsProps> = ({
   };
 
   const tabs = [
+    { id: 'produtos' as TabType, label: 'Ofertas', icon: 'inventory_2' },
     { id: 'tema' as TabType, label: 'Tema', icon: 'palette' },
     { id: 'design' as TabType, label: 'Design', icon: 'brush' },
     { id: 'moldura' as TabType, label: 'Cabeçalho e Rodapé', icon: 'crop_free' },
-    { id: 'produtos' as TabType, label: 'Ofertas', icon: 'inventory_2' },
     { id: 'lista' as TabType, label: 'Lista', icon: 'format_list_bulleted' }
   ];
 
@@ -275,6 +299,7 @@ export const Controls: React.FC<ControlsProps> = ({
 
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-full max-w-md h-full
+        flex flex-col
         bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl
         border-r border-gray-200/50 dark:border-gray-800/50
         transition-transform duration-300 ease-spring
@@ -314,11 +339,11 @@ export const Controls: React.FC<ControlsProps> = ({
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar">
           {/* TEMA TAB */}
           {
             activeTab === 'tema' && (
-              <div className="animate-in fade-in duration-300 slide-in-from-bottom-2 space-y-4">
+              <div className="animate-in fade-in duration-300 slide-in-from-bottom-2 space-y-4 pb-10">
                 {/* Tema Sazonal */}
                 <section>
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
@@ -478,7 +503,7 @@ export const Controls: React.FC<ControlsProps> = ({
           {/* DESIGN TAB */}
           {
             activeTab === 'design' && (
-              <div className="animate-in fade-in duration-300 slide-in-from-bottom-2 space-y-4">
+              <div className="animate-in fade-in duration-300 slide-in-from-bottom-2 space-y-4 pb-10">
 
                 <section>
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
@@ -872,7 +897,7 @@ export const Controls: React.FC<ControlsProps> = ({
           {/* CABEÇALHO E RODAPÉ TAB */}
           {
             activeTab === 'moldura' && (
-              <div className="animate-in fade-in duration-300 slide-in-from-bottom-2 space-y-5">
+              <div className="animate-in fade-in duration-300 slide-in-from-bottom-2 space-y-5 pb-10">
                 {/* === CABEÇALHO === */}
                 <div>
                   <h2 className="text-xs font-black uppercase tracking-widest text-primary mb-3 flex items-center gap-1.5">
@@ -1088,6 +1113,7 @@ export const Controls: React.FC<ControlsProps> = ({
               <div className="flex flex-col h-full animate-in fade-in duration-300 slide-in-from-bottom-2">
                 <div className="flex w-full mb-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
                   <button
+                    type="button"
                     onClick={() => setProductTab('single')}
                     className={`flex-1 text-center py-2.5 text-xs font-bold uppercase tracking-wide border-b-2 transition-all flex items-center justify-center gap-1 ${productTab === 'single' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
                       }`}
@@ -1095,6 +1121,7 @@ export const Controls: React.FC<ControlsProps> = ({
                     <span className="material-icons-round text-base">add_circle</span> Adicionar
                   </button>
                   <button
+                    type="button"
                     onClick={() => setProductTab('batch')}
                     className={`flex-1 text-center py-2.5 text-xs font-bold uppercase tracking-wide border-b-2 transition-all flex items-center justify-center gap-1 ${productTab === 'batch' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
                       }`}
@@ -1102,6 +1129,7 @@ export const Controls: React.FC<ControlsProps> = ({
                     <span className="material-icons-round text-base">list_alt</span> Colar Lista
                   </button>
                   <button
+                    type="button"
                     onClick={() => setProductTab('import')}
                     className={`flex-1 text-center py-2.5 text-xs font-bold uppercase tracking-wide border-b-2 transition-all flex items-center justify-center gap-1 ${productTab === 'import' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
                       }`}
@@ -1113,102 +1141,246 @@ export const Controls: React.FC<ControlsProps> = ({
 
                 <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                   {productTab === 'single' && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-[auto_1fr] gap-4">
-                        <div className="relative group w-24 h-24">
-                          {newProduct.image ? (
-                            <div className="w-full h-full rounded-xl overflow-hidden border border-gray-200">
-                              <img src={newProduct.image} className="w-full h-full object-cover" />
+                    <div className="space-y-4 pb-10">
+                      {/* --- TIPO DE CADASTRO --- */}
+                      <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => setNewProduct({ ...newProduct, type: 'product' })}
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${newProduct.type === 'product' ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-400'}`}
+                        >
+                          <span className="material-icons-round text-sm">inventory_2</span> Produto
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewProduct({ ...newProduct, type: 'divider' })}
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${newProduct.type === 'divider' ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-400'}`}
+                        >
+                          <span className="material-icons-round text-sm">segment</span> Separador
+                        </button>
+                      </div>
+
+                      {newProduct.type === 'product' ? (
+                        <>
+                          {/* --- INFO BÁSICA --- */}
+                          <div className="grid grid-cols-[auto_1fr] gap-4">
+                            <div className="relative group w-24 h-24">
+                              {newProduct.image ? (
+                                <div className="w-full h-full rounded-xl overflow-hidden border border-gray-200">
+                                  <img src={newProduct.image} className="w-full h-full object-cover" alt="Preview" />
+                                  <button
+                                    onClick={() => setNewProduct({ ...newProduct, image: '' })}
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <span className="material-icons-round text-sm">close</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="w-full h-full bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700">
+                                  <span className="material-icons-round text-gray-400 text-2xl">image</span>
+                                </div>
+                              )}
+                              <label className="absolute bottom-0 right-0 bg-white dark:bg-gray-700 rounded-full p-1.5 shadow-md border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                                <span className="material-icons-round text-gray-600 dark:text-gray-300 text-sm">edit</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                              </label>
                               <button
-                                onClick={() => setNewProduct({ ...newProduct, image: '' })}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => setIsGalleryOpen(true)}
+                                className="absolute bottom-0 left-0 bg-white dark:bg-gray-700 rounded-full p-1.5 shadow-md border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                                title="Galeria"
                               >
-                                <span className="material-icons-round text-sm">close</span>
+                                <span className="material-icons-round text-gray-600 dark:text-gray-300 text-sm">collections</span>
                               </button>
                             </div>
-                          ) : (
-                            <div className="w-full h-full bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
-                              <span className="material-icons-round text-gray-400 text-2xl">image</span>
-                            </div>
-                          )}
-                          <label className="absolute bottom-0 right-0 bg-white rounded-full p-1.5 shadow-md border border-gray-200 cursor-pointer hover:bg-gray-50">
-                            <span className="material-icons-round text-gray-600 text-sm">edit</span>
-                            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                          </label>
-                          <button
-                            onClick={() => setIsGalleryOpen(true)}
-                            className="absolute bottom-0 left-0 bg-white rounded-full p-1.5 shadow-md border border-gray-200 cursor-pointer hover:bg-gray-50"
-                            title="Galeria"
-                          >
-                            <span className="material-icons-round text-gray-600 text-sm">collections</span>
-                          </button>
-                        </div>
 
-                        <div className="space-y-3">
-                          <input
-                            type="text"
-                            placeholder="Nome do Produto"
-                            value={newProduct.name}
-                            onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                            className="w-full rounded-lg border-gray-200 bg-gray-50 focus:bg-white focus:ring-primary focus:border-primary transition-all p-2.5 font-bold"
-                          />
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-[10px] font-bold text-gray-400 uppercase">Preço</label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                placeholder="0,00"
-                                value={newProduct.price || ''}
-                                onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) })}
-                                className="w-full rounded-lg border-gray-200 bg-white focus:ring-primary focus:border-primary p-2 text-lg font-bold text-red-600"
-                              />
+                            <div className="space-y-2">
+                              <div>
+                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-1">Nome</label>
+                                <input
+                                  type="text"
+                                  placeholder="Maminha bovina"
+                                  value={newProduct.name}
+                                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                                  className="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:ring-primary focus:border-primary transition-all p-2 text-sm font-bold"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-1">Detalhes</label>
+                                <input
+                                  type="text"
+                                  placeholder="Resfriada / kg"
+                                  value={newProduct.details}
+                                  onChange={(e) => setNewProduct({ ...newProduct, details: e.target.value })}
+                                  className="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:ring-primary focus:border-primary p-2 text-[11px]"
+                                />
+                              </div>
                             </div>
-                            <div>
-                              <label className="text-[10px] font-bold text-gray-400 uppercase">Unidade</label>
+                          </div>
+
+                          {/* --- PRECIFICAÇÃO --- */}
+                          <div className="grid grid-cols-3 gap-2 p-3 bg-red-50/50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20">
+                            <div className="col-span-1">
+                              <label className="text-[9px] font-black text-red-400 uppercase tracking-tighter block mb-1">Preço Atual</label>
+                              <div className="relative">
+                                <span className="absolute left-2 top-2 text-[10px] font-bold text-red-400">R$</span>
+                                <input
+                                  type="number" step="0.01"
+                                  value={newProduct.price || ''}
+                                  onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) })}
+                                  className="w-full rounded-lg border-red-100 dark:border-red-900/30 bg-white dark:bg-gray-900 pl-6 pr-2 py-2 text-sm font-black text-red-600"
+                                />
+                              </div>
+                            </div>
+                            <div className="col-span-1 opacity-80">
+                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter block mb-1">Preço Antigo</label>
+                              <div className="relative">
+                                <span className="absolute left-2 top-2 text-[10px] font-bold text-gray-400">R$</span>
+                                <input
+                                  type="number" step="0.01"
+                                  value={newProduct.originalPrice || ''}
+                                  onChange={(e) => setNewProduct({ ...newProduct, originalPrice: parseFloat(e.target.value) })}
+                                  className="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pl-6 pr-2 py-2 text-sm font-bold text-gray-400 line-through"
+                                />
+                              </div>
+                            </div>
+                            <div className="col-span-1">
+                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter block mb-1">Unidade</label>
                               <select
                                 value={newProduct.unit}
                                 onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
-                                className="w-full rounded-lg border-gray-200 bg-white text-sm focus:ring-primary focus:border-primary p-2.5 h-[46px]"
+                                className="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2 text-xs font-bold"
                               >
                                 <option>KG</option>
                                 <option>UN</option>
                                 <option>100G</option>
-                                <option>KG Pacote</option>
                                 <option>BDJ</option>
                                 <option>CX</option>
+                                <option>PCT</option>
+                                <option>L</option>
+                                <option>ML</option>
                               </select>
                             </div>
                           </div>
-                        </div>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 text-primary rounded focus:ring-primary border-gray-300"
-                            checked={newProduct.isHighlight}
-                            onChange={(e) => setNewProduct({ ...newProduct, isHighlight: e.target.checked })}
-                          />
-                          <span className="text-sm font-medium text-gray-700">Destaque (2x)</span>
+                          {/* --- SELOS E ETIQUETAS --- */}
+                          <div className="p-3 bg-primary/5 dark:bg-gray-800 rounded-xl border border-primary/10 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <span className="material-icons-round text-primary text-sm">loyalty</span>
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Selo / Etiqueta</h4>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <input
+                                type="text"
+                                placeholder="TEXTO (Ex: OFERTA)"
+                                value={newProduct.stickerText || ''}
+                                onChange={(e) => setNewProduct({ ...newProduct, stickerText: e.target.value })}
+                                className="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2 text-[10px] font-bold uppercase"
+                              />
+                              <select
+                                value={newProduct.stickerStyle || 'badge'}
+                                onChange={(e) => setNewProduct({ ...newProduct, stickerStyle: e.target.value as any })}
+                                className="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2 text-[10px] font-bold uppercase"
+                              >
+                                <option value="badge">Círculo</option>
+                                <option value="ribbon">Faixa</option>
+                                <option value="tag">Etiqueta</option>
+                                <option value="neon">Neon</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* --- LAYOUT INDIVIDUAL --- */}
+                          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <span className="material-icons-round text-gray-500 text-sm">dashboard_customize</span>
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Layout do Card</h4>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Orientação</label>
+                                <select
+                                  value={newProduct.cardLayout || 'vertical'}
+                                  onChange={(e) => setNewProduct({ ...newProduct, cardLayout: e.target.value as any })}
+                                  className="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-1.5 text-[10px] font-bold uppercase"
+                                >
+                                  <option value="vertical">Vertical</option>
+                                  <option value="horizontal">Horizontal</option>
+                                  <option value="reversed">Vert. Invertido</option>
+                                  <option value="horizontal-reversed">Horiz. Invertido</option>
+                                </select>
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Colunas</label>
+                                <div className="flex items-center bg-white dark:bg-gray-900 rounded-lg p-1 border border-gray-200 dark:border-gray-700">
+                                  {[1, 2, 3].map(c => (
+                                    <button
+                                      key={c}
+                                      onClick={() => setNewProduct({ ...newProduct, cols: c, isHighlight: c > 1 })}
+                                      className={`flex-1 py-1 text-[10px] font-bold rounded ${newProduct.cols === c ? 'bg-primary/10 text-primary' : 'text-gray-400'}`}
+                                    >
+                                      {c}x
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 pt-1 border-t border-gray-100 dark:border-gray-700">
+                              <input
+                                type="checkbox"
+                                checked={newProduct.isHighlight}
+                                onChange={(e) => setNewProduct({ ...newProduct, isHighlight: e.target.checked })}
+                                className="rounded text-primary focus:ring-primary w-3 h-3"
+                              />
+                              <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase">Destaque Especial (Fundo colorido)</span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        /* --- SEPARADOR / TÍTULO --- */
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                          <div>
+                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-1">Título do Separador</label>
+                            <input
+                              type="text"
+                              placeholder="Ofertas de Açougue"
+                              value={newProduct.name}
+                              onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                              className="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:ring-primary focus:border-primary transition-all p-3 text-sm font-black uppercase tracking-widest"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-1">Tema Visual</label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                { id: 'default', label: 'Padrão', icon: 'label' },
+                                { id: 'meat', label: 'Carnes', icon: 'restaurant' },
+                                { id: 'produce', label: 'Horti', icon: 'eco' },
+                                { id: 'bakery', label: 'Padaria', icon: 'bakery_dining' },
+                                { id: 'beverages', label: 'Bebidas', icon: 'local_bar' },
+                                { id: 'clean', label: 'Clean', icon: 'layers' }
+                              ].map(theme => (
+                                <button
+                                  key={theme.id}
+                                  onClick={() => setNewProduct({ ...newProduct, dividerTheme: theme.id as any })}
+                                  className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${newProduct.dividerTheme === theme.id ? 'border-primary bg-primary/5 text-primary' : 'border-gray-100 dark:border-gray-800 text-gray-400 hover:border-gray-200'}`}
+                                >
+                                  <span className="material-icons-round text-lg">{theme.icon}</span>
+                                  <span className="text-[8px] font-black uppercase tracking-tighter">{theme.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                        <input
-                          type="text"
-                          placeholder="Detalhes (marca, tipo, etc)"
-                          value={newProduct.details}
-                          onChange={(e) => setNewProduct({ ...newProduct, details: e.target.value })}
-                          className="w-full rounded-lg border-gray-200 bg-gray-50 focus:bg-white focus:ring-primary focus:border-primary p-2.5"
-                        />
-                      </div>
+                      )}
 
                       <button
+                        type="button"
                         onClick={handleAddProduct}
-                        disabled={!newProduct.name || !newProduct.price}
-                        className="w-full py-4 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+                        disabled={!newProduct.name || (newProduct.type !== 'divider' && !newProduct.price)}
+                        className="w-full py-4 bg-primary text-white font-black rounded-xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-0.5 transition-all disabled:opacity-30 disabled:grayscale disabled:scale-95 disabled:cursor-not-allowed flex items-center justify-center gap-2 group mt-6"
                       >
-                        <span className="material-icons-round group-hover:scale-110 transition-transform">add_circle</span>
-                        ADICIONAR PRODUTO
+                        <span className="material-icons-round group-hover:rotate-90 transition-transform">add_circle</span>
+                        {newProduct.type === 'divider' ? 'ADICIONAR SEPARADOR' : 'ADICIONAR PRODUTO'}
                       </button>
                     </div>
                   )}

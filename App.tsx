@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { toJpeg } from 'html-to-image';
 import {
   DndContext,
   closestCenter,
@@ -230,15 +231,20 @@ const AppContent: React.FC = () => {
   const historyDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const setAppState = useCallback((update: AppState | ((prev: AppState) => AppState)) => {
-    // Immediate UI update without pushing to history
-    replaceState(update);
+    // 1. Calculate newState once (using the value from the last render or functional update)
+    // To be strictly safe with rapid updates, we use the value but we must be careful.
+    // However, in this app's context, calculating it once is key to avoiding duplication.
+    const newState = typeof update === 'function' ? update(state) : update;
 
-    // Debounce pushing to history
+    // 2. Immediate UI update
+    replaceState(newState);
+
+    // 3. Debounce pushing to history
     if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current);
     historyDebounceRef.current = setTimeout(() => {
-      pushAppState(update);
-    }, 500); // 500ms delay before creating a new history point
-  }, [replaceState, pushAppState]);
+      pushAppState(newState);
+    }, 500);
+  }, [state, replaceState, pushAppState]);
 
   // Auto-save with debounce
   const debouncedState = useDebounce(state, 1000);
@@ -600,14 +606,30 @@ const AppContent: React.FC = () => {
           <button
             onClick={async () => {
               setIsSaving(true);
-              const result = await saveLayout(state, user?.id);
-              setIsSaving(false);
-              setLastSaved(new Date());
-              if (result.success) {
-                showToast('success', user ? 'Salvo na nuvem!' : 'Salvo localmente!');
-              } else {
-                showToast('error', `Erro ao salvar: ${result.error?.message || 'Erro desconhecido'}`);
-                console.error('Save error details:', result.error);
+              try {
+                // Generate thumbnail for cloud preview
+                let previewUrl = '';
+                const flyerElement = document.getElementById('flyer-page-0');
+                if (flyerElement) {
+                  previewUrl = await toJpeg(flyerElement, {
+                    quality: 0.6,
+                    pixelRatio: 0.5, // Low res thumbnail
+                    backgroundColor: '#ffffff'
+                  });
+                }
+
+                const result = await saveLayout(state, user?.id, 'Layout Atual', previewUrl);
+                setLastSaved(new Date());
+                if (result.success) {
+                  showToast('success', user ? 'Salvo na nuvem!' : 'Salvo localmente!');
+                } else {
+                  throw result.error;
+                }
+              } catch (err: any) {
+                showToast('error', `Erro ao salvar: ${err?.message || 'Erro desconhecido'}`);
+                console.error('Save error details:', err);
+              } finally {
+                setIsSaving(false);
               }
             }}
             className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

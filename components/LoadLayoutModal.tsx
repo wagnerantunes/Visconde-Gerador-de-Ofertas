@@ -113,52 +113,88 @@ export const LoadLayoutModal: React.FC<LoadLayoutModalProps> = ({ isOpen, onClos
                             {layouts.map((layout) => (
                                 <div
                                     key={layout.id}
-                                    className="relative flex flex-col text-left bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary hover:shadow-lg hover:shadow-primary/5 transition-all group"
+                                    className="relative flex gap-4 text-left bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary hover:shadow-lg hover:shadow-primary/5 transition-all group items-center"
                                 >
-                                    <div className="flex justify-between items-start w-full mb-2">
-                                        <div className="flex-1 mr-2">
-                                            {editingId === layout.id ? (
-                                                <input
-                                                    type="text"
-                                                    defaultValue={layout.name}
-                                                    autoFocus
-                                                    className="w-full text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-primary rounded px-2 py-1 outline-none"
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') handleRename(layout.id, e.currentTarget.value);
-                                                        if (e.key === 'Escape') setEditingId(null);
-                                                    }}
-                                                    onBlur={(e) => handleRename(layout.id, e.currentTarget.value)}
-                                                />
-                                            ) : (
-                                                <button onClick={() => handleSelect(layout)} className="font-bold text-gray-800 dark:text-gray-100 hover:text-primary hover:underline text-left">
-                                                    {layout.name}
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={() => setEditingId(layout.id)}
-                                                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400 hover:text-blue-500"
-                                                title="Renomear"
-                                            >
-                                                <span className="material-icons-round text-sm">edit</span>
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(layout.id)}
-                                                className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-gray-400 hover:text-red-500"
-                                                title="Excluir"
-                                            >
-                                                <span className="material-icons-round text-sm">delete</span>
-                                            </button>
+                                    {/* Preview Thumbnail */}
+                                    <div
+                                        onClick={() => handleSelect(layout)}
+                                        className="w-24 h-32 flex-shrink-0 bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700 cursor-pointer group/thumb relative transition-all"
+                                    >
+                                        {layout.preview_url ? (
+                                            <img src={layout.preview_url} className="w-full h-full object-cover object-top" alt="Preview" />
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 dark:text-gray-600">
+                                                <span className="material-icons-round text-2xl">image_not_supported</span>
+                                                <span className="text-[8px] font-bold uppercase mt-1">Sem Preview</span>
+                                            </div>
+                                        )}
+                                        <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                                            <span className="material-icons-round text-white text-xl">file_open</span>
                                         </div>
                                     </div>
-                                    <div className="flex justify-between items-end mt-auto">
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                                            {layout.state?.products?.length || 0} produtos • Tema {layout.state?.seasonal?.title || 'Personalizado'}
+
+                                    <div className="flex-1 flex flex-col min-w-0 h-32">
+                                        <div className="flex justify-between items-start w-full mb-1">
+                                            <div className="flex-1 min-w-0 mr-2">
+                                                {editingId === layout.id ? (
+                                                    <input
+                                                        type="text"
+                                                        defaultValue={layout.name}
+                                                        autoFocus
+                                                        className="w-full text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-primary rounded px-2 py-1 outline-none"
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') handleRename(layout.id, e.currentTarget.value);
+                                                            if (e.key === 'Escape') setEditingId(null);
+                                                        }}
+                                                        onBlur={(e) => handleRename(layout.id, e.currentTarget.value)}
+                                                    />
+                                                ) : (
+                                                    <h3 className="font-bold text-gray-800 dark:text-gray-100 truncate block w-full leading-tight">
+                                                        {layout.name}
+                                                    </h3>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={() => setEditingId(layout.id)}
+                                                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400 hover:text-blue-500 transition-colors"
+                                                    title="Renomear"
+                                                >
+                                                    <span className="material-icons-round text-sm">edit</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(layout.id)}
+                                                    className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-gray-400 hover:text-red-500 transition-colors"
+                                                    title="Excluir"
+                                                >
+                                                    <span className="material-icons-round text-sm">delete</span>
+                                                </button>
+                                            </div>
                                         </div>
-                                        <span className="text-[10px] bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full text-gray-500">
-                                            {new Date(layout.updated_at).toLocaleDateString()}
-                                        </span>
+
+                                        <div className="text-[10px] text-gray-500 dark:text-gray-400 flex flex-wrap gap-1 items-center mb-2">
+                                            <span className="bg-gray-100 dark:bg-gray-700/50 px-1.5 py-0.5 rounded italic">
+                                                {layout.state?.products?.length || 0} produtos
+                                            </span>
+                                            <span className="bg-primary/5 text-primary/70 px-1.5 py-0.5 rounded border border-primary/10 font-bold">
+                                                {layout.state?.paperSize?.toUpperCase() || 'FEED'}
+                                            </span>
+                                        </div>
+
+                                        <div className="mt-auto flex items-center justify-between">
+                                            <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                <span className="material-icons-round text-[10px]">schedule</span>
+                                                {new Date(layout.updated_at).toLocaleDateString()}
+                                            </span>
+
+                                            <button
+                                                onClick={() => handleSelect(layout)}
+                                                className="px-3 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-lg text-[10px] font-black uppercase tracking-wider shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center gap-1"
+                                            >
+                                                <span className="material-icons-round text-[14px]">play_arrow</span>
+                                                Abrir
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}

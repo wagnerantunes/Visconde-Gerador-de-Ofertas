@@ -31,6 +31,7 @@ create table layouts (
   user_id uuid references auth.users not null,
   name text default 'Sem Título',
   state jsonb not null, -- Stores the entire JSON state of the flyer
+  preview_url text, -- Stores a base64 thumbnail of the first page
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
   CONSTRAINT layouts_user_id_name_key UNIQUE (user_id, name)
