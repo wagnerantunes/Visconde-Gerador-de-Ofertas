@@ -2,49 +2,84 @@ import { Product } from './types';
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
-    id: '1',
-    name: 'Picanha Bovina Premium',
-    details: 'Peça selecionada',
-    price: 69.90,
-    unit: 'KG',
-    image: '/produtos/Picanha.png',
-    isHighlight: true
-  },
-  {
-    id: '2',
-    name: 'Coxa com Sobrecoxa',
-    details: '',
-    price: 10.99,
-    unit: 'KG',
-    image: '/produtos/CoxaComSobrecoxa.png',
+    id: 'divider-1',
+    name: '🍖 Açougue Especial',
+    type: 'divider',
+    dividerTheme: 'meat',
+    price: 0,
+    unit: '',
+    image: '',
     isHighlight: false
   },
   {
+    id: '1',
+    name: 'Picanha Bovina Premium Argel',
+    details: 'Peça selecionada e maturada',
+    price: 69.90,
+    originalPrice: 89.90,
+    unit: 'KG',
+    image: '/produtos/Picanha.png',
+    isHighlight: true,
+    cols: 2,
+    cardLayout: 'horizontal',
+    stickerText: 'OFERTA DO DIA',
+    stickerStyle: 'neon'
+  },
+  {
+    id: '2',
+    name: 'Maminha Bovina',
+    details: 'Vácuo extra macia',
+    price: 38.99,
+    unit: 'KG',
+    image: '/produtos/CoxaComSobrecoxa.png',
+    isHighlight: false,
+    cols: 1,
+    stickerText: 'PREÇO BAIXO',
+    stickerStyle: 'badge'
+  },
+  {
     id: '3',
-    name: 'Acém Bovino Picado',
-    details: '',
-    price: 18.99,
+    name: 'Acém Bovino Moído',
+    details: 'Moído na hora 2x',
+    price: 24.99,
     unit: 'KG',
     image: '/produtos/AcemPicado.png',
+    isHighlight: false,
+    cols: 1,
+    priceStyle: 'star'
+  },
+  {
+    id: 'divider-2',
+    name: '🥦 Hortifruti Direto do Campo',
+    type: 'divider',
+    dividerTheme: 'produce',
+    price: 0,
+    unit: '',
+    image: '',
     isHighlight: false
   },
   {
     id: '4',
-    name: 'Linguiça Toscana',
-    details: '',
-    price: 22.50,
-    unit: 'PCT',
-    image: '/produtos/LinguicaToscana.png',
-    isHighlight: false
+    name: 'Banana Nanica Extra',
+    details: 'Docinha e madura',
+    price: 4.99,
+    unit: 'KG',
+    image: '/produtos/Banana.png',
+    isHighlight: false,
+    cols: 1,
+    cardLayout: 'vertical',
+    stylePreset: 'gradient'
   },
   {
     id: '5',
-    name: 'Bife de Chorizo',
-    details: 'Maturado',
-    price: 39.90,
+    name: 'Batata Monalisa Lavada',
+    details: 'Tipo especial',
+    price: 5.99,
     unit: 'KG',
-    image: '/produtos/BifeChorizo.png',
-    isHighlight: false
+    image: '/produtos/Batata.png',
+    isHighlight: false,
+    cols: 1,
+    priceStyle: 'badge'
   }
 ];
 

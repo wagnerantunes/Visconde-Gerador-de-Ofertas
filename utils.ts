@@ -68,17 +68,19 @@ export const getAvailablePageHeight = (
     paperSize: string,
     orientation: string,
     headerCustom: boolean,
-    footerCustom: boolean
+    footerCustom: boolean,
+    showFooter: boolean = true,
+    showHeader: boolean = true
 ): number => {
     const baseSize = SIZES[paperSize] || SIZES.a4;
     const isLandscape = orientation === 'landscape';
     const height = isLandscape ? baseSize.w : baseSize.h;
 
     // Calibração baseada nos componentes FlyerPreview (h-48 + h-12 = 240px)
-    const headerHeight = headerCustom ? 240 : 240;
-    const footerHeight = footerCustom ? 200 : 160;
-    const verticalPadding = 48; // Padding interno das páginas (p-6 cima/baixo)
-    const safeMargin = 10;
+    const headerHeight = showHeader ? (headerCustom ? 240 : 240) : 0;
+    const footerHeight = showFooter ? (footerCustom ? 140 : 120) : 0;
+    const verticalPadding = 20; // Padding interno reduzido (py-2 cima/baixo aprox)
+    const safeMargin = 0;
 
     return height - headerHeight - footerHeight - verticalPadding - safeMargin;
 };
@@ -105,7 +107,7 @@ export const paginateProducts = (
         // Calcula altura que este produto vai ocupar
         const productHeight = product.type === 'divider'
             ? dividerHeight
-            : itemHeight;
+            : itemHeight * (product.rows || 1);
 
         // Check if we need to wrap to new row
         const needsNewRow = currentRowSlotsTaken + span > columns || product.type === 'divider';

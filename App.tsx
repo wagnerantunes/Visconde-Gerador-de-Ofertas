@@ -23,6 +23,7 @@ import { Controls } from './components/Controls';
 import { ExportModal } from './components/ExportModal';
 import { FlyerPreview } from './components/FlyerPreview';
 import { HistoryControls } from './components/HistoryControls';
+import { MockupModal } from './components/MockupModal';
 import { ThemeToggle } from './components/ThemeToggle';
 import { NotificationProvider } from './components/NotificationProvider';
 import { TemplateManager } from './components/TemplateManager';
@@ -231,20 +232,19 @@ const AppContent: React.FC = () => {
   const historyDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const setAppState = useCallback((update: AppState | ((prev: AppState) => AppState)) => {
-    // 1. Calculate newState once (using the value from the last render or functional update)
-    // To be strictly safe with rapid updates, we use the value but we must be careful.
-    // However, in this app's context, calculating it once is key to avoiding duplication.
-    const newState = typeof update === 'function' ? update(state) : update;
+    // Use functional update to avoid closure staleness
+    replaceState(prev => {
+      const newState = typeof update === 'function' ? update(prev) : update;
 
-    // 2. Immediate UI update
-    replaceState(newState);
+      // Debounce pushing to history
+      if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current);
+      historyDebounceRef.current = setTimeout(() => {
+        pushAppState(newState);
+      }, 500);
 
-    // 3. Debounce pushing to history
-    if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current);
-    historyDebounceRef.current = setTimeout(() => {
-      pushAppState(newState);
-    }, 500);
-  }, [state, replaceState, pushAppState]);
+      return newState;
+    });
+  }, [replaceState, pushAppState]);
 
   // Auto-save with debounce
   const debouncedState = useDebounce(state, 1000);
@@ -256,6 +256,7 @@ const AppContent: React.FC = () => {
 
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [isMockupOpen, setIsMockupOpen] = useState(false);
 
   useEffect(() => {
     setIsSaving(true);
@@ -398,6 +399,13 @@ const AppContent: React.FC = () => {
     setAppState(prev => ({
       ...prev,
       products: prev.products.map(p => p.id === id ? { ...p, ...updates } : p)
+    }));
+  };
+
+  const updateProductsBatch = (ids: string[], updates: Partial<Product>) => {
+    setAppState(prev => ({
+      ...prev,
+      products: prev.products.map(p => ids.includes(p.id) ? { ...p, ...updates } : p)
     }));
   };
 
@@ -580,13 +588,41 @@ const AppContent: React.FC = () => {
         {/* Noise overlay handled in index.css body */}
 
         {/* Top bar - Clean Minimal Toolbar */}
-        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 px-2 py-1.5 rounded-xl bg-white/90 dark:bg-gray-900/90 shadow-lg shadow-black/5 dark:shadow-black/30 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-xl">
-          <HistoryControls
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={undo}
-            onRedo={redo}
-          />
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 px-2 py-1.5 rounded-xl bg-white/90 dark:bg-gray-900/90 shadow-lg shadow-black/30 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-xl">
+          {/* Integrated History Controls */}
+          <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 mr-1">
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              className="p-1.5 rounded-lg transition-all disabled:opacity-30 hover:bg-white dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+              title="Desfazer (Ctrl+Z)"
+            >
+              <span className="material-icons-round text-[18px]">undo</span>
+            </button>
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              className="p-1.5 rounded-lg transition-all disabled:opacity-30 hover:bg-white dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+              title="Refazer (Ctrl+Y)"
+            >
+              <span className="material-icons-round text-[18px]">redo</span>
+            </button>
+            <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700 mx-1" />
+            <button
+              onClick={() => {
+                if (confirm('⚠️ Deseja resetar o encarte para os modelos padrão de vitrine?')) {
+                  setAppState(prev => ({
+                    ...prev,
+                    products: INITIAL_PRODUCTS.map(p => ({ ...p, id: Date.now() + Math.random().toString(36).substr(2, 5), pageId: 'auto' }))
+                  }));
+                }
+              }}
+              className="p-1.5 rounded-lg transition-all hover:bg-red-500/10 text-red-500"
+              title="Limpar Tudo"
+            >
+              <span className="material-icons-round text-[18px]">delete_sweep</span>
+            </button>
+          </div>
 
           <button
             onClick={() => {
@@ -900,6 +936,19 @@ const AppContent: React.FC = () => {
                 }}
                 isViewerMode={isViewerMode}
               />
+
+
+              {/* Mockup Preview Trigger Button */}
+              <button
+                onClick={() => setIsMockupOpen(true)}
+                className="fixed bottom-20 right-4 z-40 w-12 h-12 bg-white dark:bg-gray-800 rounded-full shadow-2xl border border-primary/20 flex items-center justify-center text-primary hover:scale-110 active:scale-95 transition-all group"
+                title="Ver Mockup no WhatsApp"
+              >
+                <span className="material-icons-round">smartphone</span>
+                <div className="absolute right-full mr-3 px-2 py-1 bg-gray-900 text-white text-[10px] font-black uppercase rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                  Visualizar no Celular
+                </div>
+              </button>
               <DragOverlay>
                 {activeDragId ? (
                   <div style={{ transform: 'scale(0.9)', opacity: 0.9 }}>
@@ -969,6 +1018,7 @@ const AppContent: React.FC = () => {
           }}
           products={state.products}
           onUpdateProduct={updateProduct}
+          onUpdateProductsBatch={updateProductsBatch}
           onRemoveProduct={removeProduct}
           onReorderProducts={(newProducts) => setAppState(prev => ({ ...prev, products: newProducts }))}
           onClearAll={() => setAppState(prev => ({ ...prev, products: [] }))}
@@ -979,6 +1029,12 @@ const AppContent: React.FC = () => {
           onClose={() => setIsAIStudioOpen(false)}
           state={state}
           onUpdateState={(updates) => setAppState(prev => ({ ...prev, ...updates }))}
+        />
+
+        <MockupModal
+          isOpen={isMockupOpen}
+          onClose={() => setIsMockupOpen(false)}
+          state={state}
         />
 
         <StatusBar

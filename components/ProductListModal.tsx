@@ -26,6 +26,7 @@ interface ProductListDrawerProps {
     onClose: () => void;
     products: Product[];
     onUpdateProduct: (id: string, updates: Partial<Product>) => void;
+    onUpdateProductsBatch: (ids: string[], updates: Partial<Product>) => void;
     onRemoveProduct: (id: string) => void;
     onReorderProducts: (products: Product[]) => void;
     onClearAll: () => void;
@@ -285,7 +286,10 @@ const SortableProductRow: React.FC<SortableRowProps> = ({
                                     />
                                 </div>
                                 <button
-                                    onClick={() => onUpdateProduct(product.id, { isHighlight: !product.isHighlight })}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onUpdateProduct(product.id, { isHighlight: !product.isHighlight });
+                                    }}
                                     className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all shrink-0 ${product.isHighlight
                                         ? 'bg-yellow-400 text-white shadow-lg shadow-yellow-400/30'
                                         : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-gray-200'
@@ -302,21 +306,40 @@ const SortableProductRow: React.FC<SortableRowProps> = ({
                     {editingId === product.id && (
                         <div className="pt-3 border-t border-gray-100 dark:border-gray-800 mt-2 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                             {/* Column Span Selector */}
-                            <div>
-                                <label className="text-[9px] font-black uppercase text-gray-400 tracking-[0.2em] mb-2 block">Ocupar Colunas</label>
-                                <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-                                    {[1, 2, 3, 4, 5].map(num => (
-                                        <button
-                                            key={num}
-                                            onClick={() => onUpdateProduct(product.id, { cols: num })}
-                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${(product.cols || 1) === num
-                                                ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
-                                                : 'text-gray-400 hover:text-gray-600'
-                                                }`}
-                                        >
-                                            {num}
-                                        </button>
-                                    ))}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[9px] font-black uppercase text-gray-400 tracking-[0.2em] mb-2 block">Colunas (Largura)</label>
+                                    <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                                        {[1, 2, 3, 4, 5].map(num => (
+                                            <button
+                                                key={num}
+                                                onClick={() => onUpdateProduct(product.id, { cols: num })}
+                                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${(product.cols || 1) === num
+                                                    ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+                                                    : 'text-gray-400 hover:text-gray-600'
+                                                    }`}
+                                            >
+                                                {num}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[9px] font-black uppercase text-gray-400 tracking-[0.2em] mb-2 block">Linhas (Altura)</label>
+                                    <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                                        {[1, 2, 3].map(num => (
+                                            <button
+                                                key={num}
+                                                onClick={() => onUpdateProduct(product.id, { rows: num })}
+                                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${(product.rows || 1) === num
+                                                    ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+                                                    : 'text-gray-400 hover:text-gray-600'
+                                                    }`}
+                                            >
+                                                {num}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
@@ -364,7 +387,10 @@ const SortableProductRow: React.FC<SortableRowProps> = ({
                                         max="100"
                                         step="1"
                                         value={product.imageOffsetY || 0}
-                                        onChange={(e) => onUpdateProduct(product.id, { imageOffsetY: parseInt(e.target.value) })}
+                                        onChange={(e) => {
+                                            e.stopPropagation();
+                                            onUpdateProduct(product.id, { imageOffsetY: parseInt(e.target.value) });
+                                        }}
                                         className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-primary"
                                     />
                                 </div>
@@ -535,7 +561,7 @@ const SortableProductRow: React.FC<SortableRowProps> = ({
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
@@ -544,6 +570,7 @@ export const ProductListModal: React.FC<ProductListDrawerProps> = ({
     onClose,
     products,
     onUpdateProduct,
+    onUpdateProductsBatch,
     onRemoveProduct,
     onReorderProducts,
     onClearAll,
@@ -589,37 +616,37 @@ export const ProductListModal: React.FC<ProductListDrawerProps> = ({
     };
 
     const handleBatchCols = (cols: number) => {
-        selectedIds.forEach(id => onUpdateProduct(id, { cols }));
+        onUpdateProductsBatch(selectedIds, { cols });
         setSelectedIds([]);
     };
 
     const handleBatchHighlight = (isHighlight: boolean) => {
-        selectedIds.forEach(id => onUpdateProduct(id, { isHighlight }));
+        onUpdateProductsBatch(selectedIds, { isHighlight });
         setSelectedIds([]);
     };
 
     // Batch image adjustments
     const handleBatchImageScale = (scale: number) => {
         setBatchImageScale(scale);
-        selectedIds.forEach(id => onUpdateProduct(id, { imageScale: scale }));
+        onUpdateProductsBatch(selectedIds, { imageScale: scale });
     };
 
     const handleBatchImageOffsetX = (offset: number) => {
         setBatchImageOffsetX(offset);
-        selectedIds.forEach(id => onUpdateProduct(id, { imageOffsetX: offset }));
+        onUpdateProductsBatch(selectedIds, { imageOffsetX: offset });
     };
 
     const handleBatchImageOffsetY = (offset: number) => {
         setBatchImageOffsetY(offset);
-        selectedIds.forEach(id => onUpdateProduct(id, { imageOffsetY: offset }));
+        onUpdateProductsBatch(selectedIds, { imageOffsetY: offset });
     };
 
     const resetBatchImageValues = () => {
-        selectedIds.forEach(id => onUpdateProduct(id, {
+        onUpdateProductsBatch(selectedIds, {
             imageScale: 1,
             imageOffsetX: 0,
             imageOffsetY: 0
-        }));
+        });
         setBatchImageScale(1);
         setBatchImageOffsetX(0);
         setBatchImageOffsetY(0);

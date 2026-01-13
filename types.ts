@@ -13,6 +13,7 @@ export interface Product {
   image: string;
   isHighlight: boolean;
   cols?: number;
+  rows?: number;
   imageScale?: number;
   imageOffsetY?: number;
   imageOffsetX?: number;

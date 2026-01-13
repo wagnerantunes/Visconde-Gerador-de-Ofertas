@@ -71,11 +71,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
 
             if (state.paperSize === 'feed-story') {
                 // --- LÓGICA MISTA (Feed + Story) ---
-                const feedH = getAvailablePageHeight('feed', state.orientation, !!state.header.customImage, !!state.footer.customImage);
+                const feedH = getAvailablePageHeight('feed', state.orientation, !!state.header.customImage, !!state.footer.customImage, state.footer.showFooter !== false);
                 const feedPages = paginateProducts(state.products, feedH, (state.layout?.cardHeight || 280) + (state.layout?.rowGap || 16), state.columns);
 
                 const sec = state.secondarySettings || { layout: state.layout, columns: 1 };
-                const storyH = getAvailablePageHeight('story', state.orientation, !!state.header.customImage, !!state.footer.customImage);
+                const storyH = getAvailablePageHeight('story', state.orientation, !!state.header.customImage, !!state.footer.customImage, state.footer.showFooter !== false);
                 const storyPages = paginateProducts(state.products, storyH, (sec.layout?.cardHeight || 280) + 16, sec.columns || 1);
 
                 // Feed Pages (Index 0 to N-1)
@@ -92,7 +92,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
 
             } else {
                 // --- LÓGICA PADRÃO ---
-                const availableHeight = getAvailablePageHeight(state.paperSize, state.orientation, !!state.header.customImage, !!state.footer.customImage);
+                const availableHeight = getAvailablePageHeight(state.paperSize, state.orientation, !!state.header.customImage, !!state.footer.customImage, state.footer.showFooter !== false);
                 const itemHeight = (state.layout.cardHeight || 280) + (state.layout.rowGap || 16);
                 const productPages = paginateProducts(state.products, availableHeight, itemHeight, state.columns);
 

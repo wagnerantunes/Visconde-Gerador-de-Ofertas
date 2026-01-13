@@ -31,9 +31,9 @@ export const ProductCard = React.memo<ProductCardProps>(({
   const height = layout?.cardHeight ? `${layout.cardHeight}px` : '18rem';
   const isCompact = layout?.cardStyle === 'compact';
   const isHighlight = product.isHighlight || (product.cols || 1) >= 2;
-  const borderRadius = layout?.borderRadius !== undefined ? `${layout.borderRadius}px` : '1rem';
+  const borderRadius = layout?.borderRadius !== undefined ? `${layout.borderRadius}px` : '1.25rem'; // Ligeiramente maior para ar moderno
   const shadowIntensity = layout?.shadowIntensity !== undefined ? layout.shadowIntensity : 0.1;
-  const globalShadow = `0 ${4 * shadowIntensity * 10}px ${12 * shadowIntensity * 10}px rgba(0,0,0,${shadowIntensity})`;
+  const globalShadow = `0 10px 25px -5px rgba(0,0,0,${shadowIntensity * 1.5}), 0 4px 10px -5px rgba(0,0,0,${shadowIntensity})`;
 
   const renderEditButton = () => {
     if (isViewerMode || product.type === 'divider') return null;
@@ -104,27 +104,27 @@ export const ProductCard = React.memo<ProductCardProps>(({
 
     return (
       <div
-        className={`w-full flex items-center justify-center relative overflow-hidden border border-gray-100 dark:border-gray-800 ${className}`}
-        style={{ height: 'auto', minHeight: '80px', background: theme.bg, borderRadius, boxShadow: globalShadow, ...style }}
+        className={`w-full flex items-center justify-center relative overflow-hidden border border-gray-100 dark:border-gray-800 group/divider ${className}`}
+        style={{ height: 'auto', minHeight: '90px', background: theme.bg, borderRadius, boxShadow: globalShadow, ...style }}
       >
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: theme.pattern, backgroundSize: '20px 20px' }} />
-        <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: theme.color === '#fff' ? 'rgba(255,255,255,0.3)' : primaryColor }} />
-        <div className="flex gap-6 items-center px-10 py-6 relative z-10 w-full overflow-hidden">
-          <div className="h-[1px] flex-1 bg-current opacity-20" style={{ color: theme.color }} />
-          <div className="flex items-center gap-4">
-            <span className="material-icons-round text-3xl opacity-80" style={{ color: theme.color }}>{theme.icon}</span>
+        <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: theme.pattern, backgroundSize: '40px 40px' }} />
+        <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: theme.color === '#fff' ? 'rgba(255,255,255,0.3)' : primaryColor }} />
+        <div className="flex gap-8 items-center px-12 py-8 relative z-10 w-full overflow-hidden">
+          <div className="h-[2px] flex-1 bg-current opacity-20 rounded-full" style={{ color: theme.color }} />
+          <div className="flex items-center gap-5 transform transition-transform group-hover/divider:scale-105 duration-500">
+            <span className="material-icons-round text-4xl opacity-90 drop-shadow-lg" style={{ color: theme.color }}>{theme.icon}</span>
             <h2
-              className="font-black text-4xl uppercase tracking-[0.25em] whitespace-nowrap drop-shadow-md italic"
+              className="font-black text-4xl uppercase tracking-[0.15em] whitespace-nowrap drop-shadow-2xl italic select-none"
               style={{
                 fontFamily: fonts.headerTitle.family,
                 color: theme.color,
-                fontSize: `${2.2 * fonts.headerTitle.scale}rem`
+                fontSize: `${2.4 * fonts.headerTitle.scale}rem`
               }}
             >
               {product.name}
             </h2>
           </div>
-          <div className="h-[1px] flex-1 bg-current opacity-20" style={{ color: theme.color }} />
+          <div className="h-[2px] flex-1 bg-current opacity-20 rounded-full" style={{ color: theme.color }} />
         </div>
       </div>
     );
@@ -170,7 +170,8 @@ export const ProductCard = React.memo<ProductCardProps>(({
 
     return (
       <div className={stickerClass} style={stickerStyle}>
-        {product.stickerText}
+        <span className="relative z-10">{product.stickerText}</span>
+        {style === 'neon' && <div className="absolute inset-0 bg-current opacity-20 blur-md animate-pulse" />}
       </div>
     );
   };
@@ -373,25 +374,25 @@ export const ProductCard = React.memo<ProductCardProps>(({
         </div>
 
         {/* Informações - Ocupa o topo no z-index para nunca ser sobreposta pela imagem escalada */}
-        <div className={`flex-1 flex flex-col justify-between px-5 py-6 relative z-10 ${isReversed ? 'mr-0 items-end text-right' : 'items-start'}`}
-          style={{ backgroundColor: isCustomBg ? bgColor : 'white', margin: isReversed ? '0 -2rem 0 0' : '0 0 0 -2rem', paddingLeft: isReversed ? '1.5rem' : '3.5rem' }}>
+        <div className={`flex-1 flex flex-col justify-between px-6 py-8 relative z-10 ${isReversed ? 'mr-0 items-end text-right' : 'items-start'}`}
+          style={{ backgroundColor: isCustomBg ? bgColor : 'white', margin: isReversed ? '0 -2rem 0 0' : '0 0 0 -2rem', paddingLeft: isReversed ? '2rem' : '4rem' }}>
           <div className={`w-full flex flex-col ${isReversed ? 'items-end' : 'items-start'}`}>
             <h3
-              className={`font-black tracking-tight leading-[0.85] mb-1 drop-shadow-sm group-hover:text-primary transition-colors ${isReversed ? 'text-right' : 'text-left'}`}
+              className={`font-black tracking-tight leading-[0.9] mb-2 drop-shadow-sm group-hover:text-primary transition-colors ${isReversed ? 'text-right' : 'text-left'}`}
               style={{
                 fontFamily: fonts.productName.family,
                 color: txtColor,
-                fontSize: `${1.6 * fonts.productName.scale}rem`
+                fontSize: `${1.8 * fonts.productName.scale}rem`
               }}
             >
               {product.name}
             </h3>
             {product.details && isDetailsVisible && (
               <p
-                className={`opacity-70 font-bold uppercase tracking-widest leading-tight mb-2 ${isReversed ? 'text-right' : 'text-left'}`}
+                className={`opacity-60 font-extrabold uppercase tracking-widest leading-tight mb-4 ${isReversed ? 'text-right' : 'text-left'}`}
                 style={{
                   fontFamily: fonts.productDetails.family,
-                  fontSize: `${0.8 * fonts.productDetails.scale}rem`,
+                  fontSize: `${0.85 * fonts.productDetails.scale}rem`,
                   color: txtColor
                 }}
               >
@@ -400,7 +401,9 @@ export const ProductCard = React.memo<ProductCardProps>(({
             )}
           </div>
 
-          {renderPriceTag(true)}
+          <div className="transform transition-transform duration-500 group-hover:translate-x-2 group-hover:scale-105 flex flex-col justify-end h-full">
+            {renderPriceTag(true)}
+          </div>
         </div>
         {renderCartButton()}
       </div>
@@ -445,24 +448,24 @@ export const ProductCard = React.memo<ProductCardProps>(({
       </div>
 
       {/* Informações do Produto - Mais proeminente para evitar sobreposição */}
-      <div className={`flex flex-col justify-center relative z-10 shrink-0 ${isHorizontal ? 'w-1/2' : 'w-full'} ${isCustomBg ? '' : 'bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.02)]'}`}
-        style={{ backgroundColor: isCustomBg ? bgColor : 'white', padding: `${contentPad * 0.25}rem` }}>
+      <div className={`flex flex-col justify-center relative z-10 shrink-0 ${isHorizontal ? 'w-1/2 p-4' : 'w-full p-4 pb-5'} ${isCustomBg ? '' : 'bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.03)]'}`}
+        style={{ backgroundColor: isCustomBg ? bgColor : 'white', minHeight: isHorizontal ? 'auto' : '90px' }}>
         <h3
-          className={`font-black leading-tight tracking-tighter drop-shadow-sm group-hover:text-primary transition-colors line-clamp-2 ${isHorizontal ? 'text-xs mb-0' : 'text-sm mb-0.5'}`}
+          className={`font-black leading-[1.1] tracking-tight group-hover:text-primary transition-colors line-clamp-2 ${isHorizontal ? 'text-sm mb-1' : 'text-base mb-1'}`}
           style={{
             fontFamily: fonts.productName.family,
             color: txtColor,
-            fontSize: `${(isHorizontal ? 0.8 : 1) * fonts.productName.scale}rem`
+            fontSize: `${(isHorizontal ? 1.1 : 1.25) * fonts.productName.scale}rem`
           }}
         >
           {product.name}
         </h3>
         {product.details && isDetailsVisible && (
           <p
-            className={`opacity-60 font-bold uppercase tracking-tight leading-none overflow-hidden text-ellipsis whitespace-nowrap ${isHorizontal ? 'text-[8px] mt-0.5' : 'text-[10px] mt-1'}`}
+            className={`opacity-50 font-extrabold uppercase tracking-tighter leading-none overflow-hidden text-ellipsis whitespace-nowrap ${isHorizontal ? 'text-[9px] mt-0.5' : 'text-[10px] mt-1'}`}
             style={{
               fontFamily: fonts.productDetails.family,
-              fontSize: `${(isHorizontal ? 0.5 : 0.65) * fonts.productDetails.scale}rem`,
+              fontSize: `${(isHorizontal ? 0.75 : 0.85) * fonts.productDetails.scale}rem`,
               color: txtColor
             }}
           >

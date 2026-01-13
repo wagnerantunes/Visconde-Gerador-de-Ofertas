@@ -47,6 +47,7 @@ export const SortableProduct = React.memo<SortableProductProps>(({
         transform: CSS.Transform.toString(transform),
         transition,
         gridColumn: `span ${product.type === 'divider' ? columns : (product.cols || 1)}`,
+        gridRow: `span ${product.type === 'divider' ? 1 : (product.rows || 1)}`,
         zIndex: isDragging ? 50 : 'auto',
         opacity: isDragging ? 0.5 : 1,
         touchAction: 'none' // Ensure touch devices can drag successfully

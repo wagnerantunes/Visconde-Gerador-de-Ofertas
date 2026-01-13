@@ -3,6 +3,7 @@ import { AppState, Product } from '../types';
 import { MOCK_IMAGES } from '../constants';
 import { SEASONAL_THEMES } from '../seasonalThemes';
 import { parseProductList, imageToBase64, findProductImage } from '../utils';
+import { BRAND_PRESETS, BrandPreset } from '../brandPresets';
 import { ProductList } from './ProductList';
 import { ImageGalleryModal } from './ImageGalleryModal';
 import { Button } from './ui/Button';
@@ -63,6 +64,7 @@ export const Controls: React.FC<ControlsProps> = ({
     stickerStyle: 'badge',
     cardLayout: 'vertical',
     cols: 1,
+    rows: 1,
     imageScale: 1,
     dividerTheme: 'default'
   });
@@ -84,6 +86,7 @@ export const Controls: React.FC<ControlsProps> = ({
       stickerStyle: newProduct.stickerStyle,
       cardLayout: newProduct.cardLayout,
       cols: newProduct.cols,
+      rows: newProduct.rows,
       imageScale: newProduct.imageScale,
       dividerTheme: newProduct.dividerTheme
     });
@@ -101,6 +104,7 @@ export const Controls: React.FC<ControlsProps> = ({
       stickerStyle: 'badge',
       cardLayout: 'vertical',
       cols: 1,
+      rows: 1,
       imageScale: 1,
       dividerTheme: 'default'
     });
@@ -369,6 +373,58 @@ export const Controls: React.FC<ControlsProps> = ({
                         <span className="sr-only">{theme.title}</span>
                       </button>
                     ))}
+                  </div>
+
+                  <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-3 flex items-center gap-2">
+                      <span className="material-icons-round text-sm">stars</span>
+                      Kits de Marca (Presets)
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {BRAND_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          onClick={() => {
+                            onUpdateState({
+                              seasonal: {
+                                ...state.seasonal,
+                                theme: 'custom',
+                                primaryColor: preset.colors.primary,
+                                secondaryColor: preset.colors.secondary
+                              },
+                              backgroundTexture: preset.texture,
+                              fonts: {
+                                ...state.fonts,
+                                price: { ...state.fonts.price, family: preset.fonts.price },
+                                productName: { ...state.fonts.productName, family: preset.fonts.productName }
+                              },
+                              layout: {
+                                ...state.layout,
+                                cardStyle: preset.layout?.cardStyle || state.layout.cardStyle,
+                                priceStyle: preset.layout?.priceStyle || state.layout.priceStyle
+                              }
+                            });
+                          }}
+                          className="group flex flex-col items-start p-2.5 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:shadow-md transition-all text-left"
+                        >
+                          <div className="flex items-center gap-2 mb-2 w-full">
+                            <div
+                              className="w-6 h-6 rounded flex items-center justify-center text-white shadow-sm"
+                              style={{ background: `linear-gradient(135deg, ${preset.colors.primary}, ${preset.colors.secondary})` }}
+                            >
+                              <span className="material-icons-round text-[10px]">{preset.icon}</span>
+                            </div>
+                            <span className="text-[9px] font-black uppercase tracking-tight text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors truncate">
+                              {preset.name}
+                            </span>
+                          </div>
+                          <div className="flex gap-1 w-full h-1 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-900/50">
+                            <div className="flex-1" style={{ backgroundColor: preset.colors.primary }}></div>
+                            <div className="flex-1" style={{ backgroundColor: preset.colors.secondary }}></div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Seletor de Cores (Apenas para Personalizado) */}
@@ -905,71 +961,8 @@ export const Controls: React.FC<ControlsProps> = ({
                     Cabeçalho
                   </h2>
 
-                  {/* Logo Toggle + Upload */}
-                  <div className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg mb-3">
-                    <span className="text-xs font-medium">Mostrar Logo</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={state.header.showLogo}
-                        onChange={(e) => onUpdateState({ header: { ...state.header, showLogo: e.target.checked } })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
-                  </div>
-
-                  {state.header.logoUrl && (
-                    <div className="flex items-center justify-center p-3 bg-gray-100 dark:bg-gray-800 rounded-lg mb-3">
-                      <img src={state.header.logoUrl} alt="Logo" className="max-h-16 object-contain" />
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => logoInputRef.current?.click()}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium border border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary hover:text-primary transition-colors"
-                  >
-                    <span className="material-icons-round text-sm">cloud_upload</span>
-                    Upload Logo
-                  </button>
-                  <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-
-                  {/* Textos do Cabeçalho */}
-                  <div className="mt-4 space-y-2">
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Nome da Loja</label>
-                      <input
-                        type="text"
-                        value={state.header.storeName}
-                        onChange={(e) => onUpdateState({ header: { ...state.header, storeName: e.target.value } })}
-                        className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                        placeholder="Ex: Visconde Carnes"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Título Superior</label>
-                      <input
-                        type="text"
-                        value={state.header.title}
-                        onChange={(e) => onUpdateState({ header: { ...state.header, title: e.target.value } })}
-                        className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                        placeholder="Ex: Qualidade"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Subtítulo</label>
-                      <input
-                        type="text"
-                        value={state.header.subtitle}
-                        onChange={(e) => onUpdateState({ header: { ...state.header, subtitle: e.target.value } })}
-                        className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                        placeholder="Ex: Desde 1990"
-                      />
-                    </div>
-                  </div>
-
                   {/* Arte Pronta */}
-                  <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+                  <div className="pt-1">
                     <p className="text-[10px] font-bold uppercase text-gray-400 mb-1.5">Arte Pronta (Opcional)</p>
                     {state.header.customImage ? (
                       <div className="relative group">
@@ -1015,92 +1008,64 @@ export const Controls: React.FC<ControlsProps> = ({
                     </label>
                   </div>
 
-                  {/* Contato */}
-                  <div className="space-y-2">
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Telefone/WhatsApp</label>
-                      <input
-                        type="text"
-                        value={state.footer.phone}
-                        onChange={(e) => onUpdateState({ footer: { ...state.footer, phone: e.target.value } })}
-                        className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                        placeholder="(00) 00000-0000"
-                      />
-                    </div>
+                  {/* Rodapé Contato removido, mantendo QR e Arte Pronta */}
+                  <div className="pt-1">
 
-                    {/* Endereços */}
-                    {state.footer.addresses.map((addr, idx) => (
-                      <div key={idx}>
-                        <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Endereço {idx + 1}</label>
-                        <input
-                          type="text"
-                          value={addr}
-                          onChange={(e) => {
-                            const newAddresses = [...state.footer.addresses];
-                            newAddresses[idx] = e.target.value;
-                            onUpdateState({ footer: { ...state.footer, addresses: newAddresses } });
-                          }}
-                          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                          placeholder="Rua, Número - Cidade"
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* QR Code Inteligente */}
-                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
-                    <div className="flex items-center justify-between p-2.5 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-900/20">
-                      <div className="flex items-center gap-2">
-                        <span className="material-icons-round text-green-600 text-lg">qr_code_2</span>
-                        <div>
-                          <p className="text-xs font-black text-green-800 dark:text-green-300 uppercase leading-none">QR Code Inteligente</p>
-                          <p className="text-[9px] text-green-600/70 font-bold uppercase mt-1">Link direto para WhatsApp</p>
+                    {/* QR Code Inteligente */}
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
+                      <div className="flex items-center justify-between p-2.5 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-900/20">
+                        <div className="flex items-center gap-2">
+                          <span className="material-icons-round text-green-600 text-lg">qr_code_2</span>
+                          <div>
+                            <p className="text-xs font-black text-green-800 dark:text-green-300 uppercase leading-none">QR Code Inteligente</p>
+                            <p className="text-[9px] text-green-600/70 font-bold uppercase mt-1">Link direto para WhatsApp</p>
+                          </div>
                         </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={state.footer.showQrCode}
+                            onChange={(e) => onUpdateState({ footer: { ...state.footer, showQrCode: e.target.checked } })}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-green-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                        </label>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={state.footer.showQrCode}
-                          onChange={(e) => onUpdateState({ footer: { ...state.footer, showQrCode: e.target.checked } })}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-green-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
-                      </label>
+
+                      {state.footer.showQrCode && (
+                        <div className="space-y-2 animate-in slide-in-from-top-2">
+                          <label className="block text-[10px] font-bold uppercase text-gray-400">Mensagem do WhatsApp</label>
+                          <textarea
+                            value={state.footer.qrCodeText || ''}
+                            onChange={(e) => onUpdateState({ footer: { ...state.footer, qrCodeText: e.target.value } })}
+                            className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-colors h-16 resize-none"
+                            placeholder="Olá! Vi o encarte e gostaria de fazer um pedido."
+                          />
+                        </div>
+                      )}
                     </div>
 
-                    {state.footer.showQrCode && (
-                      <div className="space-y-2 animate-in slide-in-from-top-2">
-                        <label className="block text-[10px] font-bold uppercase text-gray-400">Mensagem do WhatsApp</label>
-                        <textarea
-                          value={state.footer.qrCodeText || ''}
-                          onChange={(e) => onUpdateState({ footer: { ...state.footer, qrCodeText: e.target.value } })}
-                          className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-colors h-16 resize-none"
-                          placeholder="Olá! Vi o encarte e gostaria de fazer um pedido."
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Arte Pronta Rodapé */}
-                  <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
-                    <p className="text-[10px] font-bold uppercase text-gray-400 mb-1.5">Arte Pronta (Opcional)</p>
-                    {state.footer.customImage ? (
-                      <div className="relative group">
-                        <img src={state.footer.customImage} className="w-full h-12 object-cover rounded-lg border border-gray-200" />
-                        <button
-                          onClick={() => onUpdateState({ footer: { ...state.footer, customImage: undefined } })}
-                          className="absolute top-1 right-1 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <span className="material-icons-round text-xs">close</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="flex items-center justify-center w-full py-2 text-xs font-medium border border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-primary hover:text-primary transition-colors">
-                        <span className="material-icons-round text-sm mr-1">image</span>
-                        Upload Imagem
-                        <input type="file" accept="image/*" className="hidden" onChange={handleFooterImageUpload} />
-                      </label>
-                    )}
+                    {/* Arte Pronta Rodapé */}
+                    <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+                      <p className="text-[10px] font-bold uppercase text-gray-400 mb-1.5">Arte Pronta (Opcional)</p>
+                      {state.footer.customImage ? (
+                        <div className="relative group">
+                          <img src={state.footer.customImage} className="w-full h-12 object-cover rounded-lg border border-gray-200" />
+                          <button
+                            onClick={() => onUpdateState({ footer: { ...state.footer, customImage: undefined } })}
+                            className="absolute top-1 right-1 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <span className="material-icons-round text-xs">close</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex items-center justify-center w-full py-2 text-xs font-medium border border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-primary hover:text-primary transition-colors">
+                          <span className="material-icons-round text-sm mr-1">image</span>
+                          Upload Imagem
+                          <input type="file" accept="image/*" className="hidden" onChange={handleFooterImageUpload} />
+                        </label>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1310,17 +1275,33 @@ export const Controls: React.FC<ControlsProps> = ({
                                 </select>
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Colunas</label>
-                                <div className="flex items-center bg-white dark:bg-gray-900 rounded-lg p-1 border border-gray-200 dark:border-gray-700">
-                                  {[1, 2, 3].map(c => (
-                                    <button
-                                      key={c}
-                                      onClick={() => setNewProduct({ ...newProduct, cols: c, isHighlight: c > 1 })}
-                                      className={`flex-1 py-1 text-[10px] font-bold rounded ${newProduct.cols === c ? 'bg-primary/10 text-primary' : 'text-gray-400'}`}
-                                    >
-                                      {c}x
-                                    </button>
-                                  ))}
+                                <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Espaço (C x L)</label>
+                                <div className="flex items-center bg-white dark:bg-gray-900 rounded-lg p-1 border border-gray-200 dark:border-gray-700 gap-1">
+                                  <div className="flex-1 flex gap-0.5">
+                                    {[1, 2].map(c => (
+                                      <button
+                                        key={c}
+                                        onClick={() => setNewProduct({ ...newProduct, cols: c, isHighlight: c > 1 || (newProduct.rows || 1) > 1 })}
+                                        className={`flex-1 py-1 text-[9px] font-black rounded transition-all ${newProduct.cols === c ? 'bg-primary text-white' : 'text-gray-400 bg-gray-50 dark:bg-gray-800'}`}
+                                        title={`${c} Colunas`}
+                                      >
+                                        {c}C
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <div className="w-[1px] h-3 bg-gray-200 dark:bg-gray-700" />
+                                  <div className="flex-1 flex gap-0.5">
+                                    {[1, 2].map(r => (
+                                      <button
+                                        key={r}
+                                        onClick={() => setNewProduct({ ...newProduct, rows: r, isHighlight: (newProduct.cols || 1) > 1 || r > 1 })}
+                                        className={`flex-1 py-1 text-[9px] font-black rounded transition-all ${newProduct.rows === r ? 'bg-blue-500 text-white' : 'text-gray-400 bg-gray-50 dark:bg-gray-800'}`}
+                                        title={`${r} Linhas`}
+                                      >
+                                        {r}L
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
                             </div>
