@@ -105,11 +105,11 @@ export const ProductCard = React.memo<ProductCardProps>(({
     return (
       <div
         className={`w-full flex items-center justify-center relative overflow-hidden border border-gray-100 dark:border-gray-800 group/divider ${className}`}
-        style={{ height: 'auto', minHeight: '90px', background: theme.bg, borderRadius, boxShadow: globalShadow, ...style }}
+        style={{ height: 'auto', minHeight: '110px', background: theme.bg, borderRadius, boxShadow: globalShadow, ...style }}
       >
         <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: theme.pattern, backgroundSize: '40px 40px' }} />
         <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: theme.color === '#fff' ? 'rgba(255,255,255,0.3)' : primaryColor }} />
-        <div className="flex gap-8 items-center px-12 py-8 relative z-10 w-full overflow-hidden">
+        <div className="flex gap-8 items-center px-12 py-10 relative z-10 w-full overflow-hidden">
           <div className="h-[2px] flex-1 bg-current opacity-20 rounded-full" style={{ color: theme.color }} />
           <div className="flex items-center gap-5 transform transition-transform group-hover/divider:scale-105 duration-500">
             <span className="material-icons-round text-4xl opacity-90 drop-shadow-lg" style={{ color: theme.color }}>{theme.icon}</span>
@@ -262,16 +262,16 @@ export const ProductCard = React.memo<ProductCardProps>(({
           tagStyle.boxShadow = 'none';
           break;
         case 'badge':
-          tagClass += " rounded-full aspect-square flex flex-col items-center justify-center p-6";
-          tagStyle.minWidth = "100px";
-          tagStyle.minHeight = "100px";
+          tagClass += " rounded-full aspect-square flex flex-col items-center justify-center p-4";
+          tagStyle.minWidth = isLarge ? "120px" : "85px";
+          tagStyle.minHeight = isLarge ? "120px" : "85px";
           break;
         case 'star':
-          tagClass += " flex flex-col items-center justify-center p-10 text-center";
+          tagClass += " flex flex-col items-center justify-center p-8 text-center";
           // Estrela de 32 pontas (starburst) - Polígono de 64 pontos calculados
           tagStyle.clipPath = "polygon(50% 0%, 54% 11%, 63% 5%, 65% 16%, 75% 12%, 74% 23%, 84% 24%, 81% 34%, 89% 37%, 83% 46%, 90% 52%, 82% 58%, 87% 66%, 77% 70%, 79% 79%, 69% 80%, 69% 89%, 60% 87%, 57% 95%, 48% 91%, 43% 97%, 37% 90%, 30% 95%, 26% 86%, 18% 88%, 16% 78%, 9% 78%, 9% 68%, 4% 66%, 5% 56%, 2% 51%, 6% 43%, 5% 33%, 12% 28%, 13% 18%, 21% 17%, 24% 8%, 32% 9%, 38% 3%, 43% 8%)";
-          tagStyle.minWidth = "130px";
-          tagStyle.minHeight = "130px";
+          tagStyle.minWidth = isLarge ? "140px" : "110px";
+          tagStyle.minHeight = isLarge ? "140px" : "110px";
           break;
         case 'outline':
           tagClass += " rounded-xl border-2 bg-white/80 backdrop-blur-sm p-4";
@@ -281,7 +281,7 @@ export const ProductCard = React.memo<ProductCardProps>(({
           tagStyle.boxShadow = 'none';
           break;
         default: // classic
-          tagClass += " rounded-xl p-3";
+          tagClass += " rounded-xl p-2.5";
           break;
       }
     } else {
@@ -308,11 +308,11 @@ export const ProductCard = React.memo<ProductCardProps>(({
               </div>
             )}
             <div className="flex items-baseline font-display leading-none" style={{ fontFamily: fonts.price.family, color: (showBox && priceStyle !== 'outline' && priceStyle !== 'minimal') ? 'white' : primaryColor }}>
-              <span className="text-xl mr-0.5" style={{ fontSize: `${1.1 * fonts.price.scale}rem` }}>R$</span>
-              <span className="text-7xl drop-shadow-sm" style={{ fontSize: `${4 * fonts.price.scale}rem` }}>{integerPart}</span>
-              <span className="text-3xl" style={{ fontSize: `${2 * fonts.price.scale}rem` }}>,{decimalPart}</span>
+              <span className="text-xl mr-0.5" style={{ fontSize: `${0.8 * fonts.price.scale}rem` }}>R$</span>
+              <span className="text-6xl drop-shadow-sm font-black" style={{ fontSize: `${2.8 * fonts.price.scale}rem` }}>{integerPart}</span>
+              <span className="text-2xl font-black" style={{ fontSize: `${1.4 * fonts.price.scale}rem` }}>,{decimalPart}</span>
               {isUnitVisible && (
-                <span className="ml-1.5 font-black lowercase opacity-90 transform translate-y-[-20%]" style={{ fontSize: `${1.2 * fonts.price.scale}rem`, fontFamily: fonts.unit.family }}>{product.unit}</span>
+                <span className="ml-0.5 font-black lowercase opacity-90 transform translate-y-[-10%]" style={{ fontSize: `${0.8 * fonts.price.scale}rem`, fontFamily: fonts.unit.family }}>{product.unit}</span>
               )}
             </div>
           </div>
@@ -423,14 +423,14 @@ export const ProductCard = React.memo<ProductCardProps>(({
       {renderEditButton()}
 
       {/* Price Badge - Flutuante e Inteligente */}
-      <div className={`absolute z-30 ${isHorizontal ? (isReversed ? 'bottom-2 left-2' : 'bottom-2 right-2') : (isReversed ? 'bottom-20 right-2' : 'top-2 right-4')}`}>
+      <div className={`absolute z-30 ${isHorizontal ? (isReversed ? 'bottom-2 left-2' : 'bottom-2 right-2') : (isReversed ? 'top-1 right-1 scale-90' : 'top-1 right-1 scale-90')}`}>
         {renderPriceTag(false)}
       </div>
 
       {/* Imagem do produto - Container Flexível */}
       <div
         className={`flex items-center justify-center min-h-0 relative z-0 ${isHorizontal ? 'w-1/2 h-full' : 'w-full flex-1'} ${preset.innerClass} ${isCustomBg ? '' : (product.stylePreset === 'gradient' ? '' : 'bg-gradient-to-br from-gray-50 to-white')}`}
-        style={{ padding: `${imgPad * 0.25}rem` }}
+        style={{ padding: `0.75rem` }}
       >
         {renderSticker()}
         <img

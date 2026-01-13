@@ -3,7 +3,7 @@ import { Product } from './types';
 export const INITIAL_PRODUCTS: Product[] = [
   {
     id: 'divider-1',
-    name: '🍖 Açougue Especial',
+    name: 'Açougue Especial',
     type: 'divider',
     dividerTheme: 'meat',
     price: 0,
@@ -27,15 +27,14 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: '2',
-    name: 'Maminha Bovina',
-    details: 'Vácuo extra macia',
+    name: 'Maminha Bovina Grill',
+    details: 'Vácuo reserva especial',
     price: 38.99,
     unit: 'KG',
     image: '/produtos/CoxaComSobrecoxa.png',
     isHighlight: false,
     cols: 1,
-    stickerText: 'PREÇO BAIXO',
-    stickerStyle: 'badge'
+    priceStyle: 'classic'
   },
   {
     id: '3',
@@ -46,11 +45,12 @@ export const INITIAL_PRODUCTS: Product[] = [
     image: '/produtos/AcemPicado.png',
     isHighlight: false,
     cols: 1,
-    priceStyle: 'star'
+    priceStyle: 'badge',
+    stickerText: 'OFERTA'
   },
   {
     id: 'divider-2',
-    name: '🥦 Hortifruti Direto do Campo',
+    name: 'Hortifruti Direto do Campo',
     type: 'divider',
     dividerTheme: 'produce',
     price: 0,
@@ -79,7 +79,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     image: '/produtos/Batata.png',
     isHighlight: false,
     cols: 1,
-    priceStyle: 'badge'
+    priceStyle: 'star'
   }
 ];
 
