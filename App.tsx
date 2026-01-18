@@ -11,6 +11,7 @@ import { TemplateManager } from './components/TemplateManager';
 import { ShortcutsHelp } from './components/ShortcutsHelp';
 import { StatusBar } from './components/StatusBar';
 import { PreviewControls } from './components/PreviewControls';
+import { CookieConsent } from './components/CookieConsent';
 import { AppState, Product } from './types';
 import { INITIAL_PRODUCTS } from './constants';
 import { SEASONAL_THEMES, DEFAULT_HEADER, DEFAULT_FOOTER } from './seasonalThemes';
@@ -289,6 +290,8 @@ const App: React.FC = () => {
           isSaving={isSaving}
           lastSaved={lastSaved}
         />
+
+        <CookieConsent />
       </div>
     </NotificationProvider>
   );

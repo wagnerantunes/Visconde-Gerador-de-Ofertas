@@ -1,80 +1,237 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gerador de Ofertas - Visconde Carnes</title>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Fjalla+One&family=Lilita+One&family=Lobster&family=Montserrat:wght@400;700;900&family=Oswald:wght@400;700&family=Roboto:wght@400;500;700;900&display=swap"
-    rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
-  <script>
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            primary: "#c62828", // Deep Butcher Red
-            secondary: "#ffca28", // Price Yellow
-            "background-light": "#f3f4f6",
-            "background-dark": "#111827",
-            "paper-light": "#ffffff",
-            "paper-dark": "#1f2937",
-          },
-          fontFamily: {
-            display: ["Lilita One", "cursive"],
-            body: ["Roboto", "sans-serif"],
+    <!-- SEO Meta Tags -->
+    <title>
+      Gerador de Ofertas - Visconde Carnes | Crie Panfletos Profissionais Grátis
+    </title>
+    <meta
+      name="description"
+      content="Crie ofertas e panfletos profissionais para açougue gratuitamente. Ferramenta online fácil de usar com templates personalizáveis. Ideal para Google Ads e Meta Ads."
+    />
+    <meta
+      name="keywords"
+      content="gerador de ofertas, panfleto açougue, visconde carnes, marketing açougue, ofertas carne, flyer grátis"
+    />
+    <meta name="author" content="Visconde Carnes" />
+    <link rel="canonical" href="https://geraofertas.com.br/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://geraofertas.com.br/" />
+    <meta property="og:title" content="Gerador de Ofertas - Visconde Carnes" />
+    <meta
+      property="og:description"
+      content="Crie ofertas e panfletos profissionais para açougue gratuitamente"
+    />
+    <meta
+      property="og:image"
+      content="https://geraofertas.com.br/og-image.jpg"
+    />
+    <meta property="og:locale" content="pt_BR" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://geraofertas.com.br/" />
+    <meta
+      property="twitter:title"
+      content="Gerador de Ofertas - Visconde Carnes"
+    />
+    <meta
+      property="twitter:description"
+      content="Crie ofertas e panfletos profissionais para açougue gratuitamente"
+    />
+    <meta
+      property="twitter:image"
+      content="https://geraofertas.com.br/og-image.jpg"
+    />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Content Security Policy -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' 
+      https://cdn.tailwindcss.com 
+      https://www.googletagmanager.com 
+      https://www.google-analytics.com
+      https://connect.facebook.net
+      https://script.google.com
+      https://esm.sh;
+    style-src 'self' 'unsafe-inline' 
+      https://fonts.googleapis.com 
+      https://cdn.tailwindcss.com;
+    font-src 'self' 
+      https://fonts.gstatic.com 
+      https://fonts.googleapis.com;
+    img-src 'self' data: https: 
+      https://lh3.googleusercontent.com
+      https://www.facebook.com
+      https://www.transparenttextures.com;
+    connect-src 'self' 
+      https://script.google.com 
+      https://www.google-analytics.com
+      https://www.facebook.com
+      https://analytics.google.com;
+    frame-src 'none';
+  "
+    />
+
+    <!-- Google Tag Manager -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-XXXXXXX");
+    </script>
+    <!-- End Google Tag Manager -->
+
+    <!-- Google tag (gtag.js) - Google Analytics 4 -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-XXXXXXXXXX", {
+        cookie_flags: "SameSite=None;Secure",
+      });
+    </script>
+
+    <!-- Meta Pixel Code -->
+    <script>
+      !(function (f, b, e, v, n, t, s) {
+        if (f.fbq) return;
+        n = f.fbq = function () {
+          n.callMethod
+            ? n.callMethod.apply(n, arguments)
+            : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n;
+        n.push = n;
+        n.loaded = !0;
+        n.version = "2.0";
+        n.queue = [];
+        t = b.createElement(e);
+        t.async = !0;
+        t.src = v;
+        s = b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t, s);
+      })(
+        window,
+        document,
+        "script",
+        "https://connect.facebook.net/en_US/fbevents.js",
+      );
+      fbq("init", "YOUR_PIXEL_ID");
+      fbq("track", "PageView");
+    </script>
+    <!-- End Meta Pixel Code -->
+
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Fjalla+One&family=Lilita+One&family=Lobster&family=Montserrat:wght@400;700;900&family=Oswald:wght@400;700&family=Roboto:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons+Round"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#c62828", // Deep Butcher Red
+              secondary: "#ffca28", // Price Yellow
+              "background-light": "#f3f4f6",
+              "background-dark": "#111827",
+              "paper-light": "#ffffff",
+              "paper-dark": "#1f2937",
+            },
+            fontFamily: {
+              display: ["Lilita One", "cursive"],
+              body: ["Roboto", "sans-serif"],
+            },
           },
         },
-      },
-    };
-  </script>
-  <style>
-    .price-tag {
-      border-radius: 50% 50% 50% 0 / 15% 15% 15% 40%;
-      box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.3);
-    }
+      };
+    </script>
+    <style>
+      .price-tag {
+        border-radius: 50% 50% 50% 0 / 15% 15% 15% 40%;
+        box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.3);
+      }
 
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
 
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
 
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-    }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
 
-    .dark ::-webkit-scrollbar-thumb {
-      background: #4b5563;
-    }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #4b5563;
+      }
 
-    /* Custom pattern for the flyer background */
-    .bg-cubes {
-      background-image: url('https://www.transparenttextures.com/patterns/cubes.png');
-    }
-  </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.1/",
-    "react/": "https://esm.sh/react@^19.2.1/",
-    "react": "https://esm.sh/react@^19.2.1"
-  }
-}
-</script>
-  <link rel="stylesheet" href="/index.css">
-</head>
+      /* Custom pattern for the flyer background */
+      .bg-cubes {
+        background-image: url("https://www.transparenttextures.com/patterns/cubes.png");
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "react-dom/": "https://esm.sh/react-dom@^19.2.1/",
+          "react/": "https://esm.sh/react@^19.2.1/",
+          "react": "https://esm.sh/react@^19.2.1"
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="/index.css" />
+  </head>
 
-<body class="bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 font-body">
-  <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
-</body>
-
+  <body
+    class="bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 font-body"
+  >
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXXXX"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    
+    <!-- Meta Pixel (noscript) -->
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1"
+    /></noscript>
+    <!-- End Meta Pixel (noscript) -->
+    
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
 </html>

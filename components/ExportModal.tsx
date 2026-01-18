@@ -3,6 +3,8 @@ import { toPng, toJpeg } from 'html-to-image';
 import jsPDF from 'jspdf';
 import { AppState } from '../types';
 import { getAvailablePageHeight, paginateProducts } from '../utils';
+import { trackEvent, trackConversion, trackMetaEvent, AnalyticsEvents } from '../utils/analytics';
+
 
 interface ExportModalProps {
     isOpen: boolean;
@@ -34,6 +36,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
     const handleExport = async (targetFormat: 'png' | 'jpg' | 'pdf') => {
         setIsExporting(true);
         setProgress('Iniciando exportação...');
+
+        // Track início da exportação
+        trackEvent(AnalyticsEvents.FLYER_EXPORT_STARTED, {
+            format: targetFormat,
+        });
 
         try {
             const fileName = `ofertas-${state.seasonal.theme}-${new Date().toISOString().split('T')[0]}`;
@@ -103,6 +110,25 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, state
                     if (productPages.length > 1) await new Promise(r => setTimeout(r, 800));
                 }
             }
+
+            // 🎯 TRACKING DE CONVERSÃO - Evento principal para Google Ads e Meta Ads
+            trackEvent(AnalyticsEvents.FLYER_EXPORTED, {
+                format: targetFormat,
+                pages: productPages.length,
+                products: state.products.length,
+                theme: state.seasonal.theme,
+            });
+
+            // Google Ads Conversion (substitua 'AW-XXXXXXXXX/CONVERSION_LABEL' pelo seu ID real)
+            // trackConversion('AW-XXXXXXXXX/CONVERSION_LABEL', productPages.length);
+
+            // Meta Pixel - Lead event (conversão principal)
+            trackMetaEvent('Lead', {
+                content_name: 'Flyer Export',
+                content_category: targetFormat,
+                value: productPages.length,
+                currency: 'BRL',
+            });
 
             onClose();
         } catch (error) {
